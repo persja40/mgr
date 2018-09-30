@@ -12,3 +12,5 @@ ELSEIF(CMAKE_BUILD_TYPE MATCHES GPU)
 ELSE()
     message(FATAL_ERROR "No build type specified")
 ENDIF()
+
+add_executable(Algorithm src/algorithm.cpp)
