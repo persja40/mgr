@@ -14,7 +14,7 @@ int main(int argc, char **argv)
     float *d_test;
     cudaMalloc((void **)&d_test, test.size());
     cudaMemcpy(d_test, test.data(), test.size(), cudaMemcpyHostToDevice);
-    kernel_gpu<<<500, 1>>>(d_test, test.size());
+    kernel_gpu<<<500, 1>>>(d_test, test.size(), &kernel_gpu_answer);
     cudaDeviceSynchronize();
     float answer;
     cudaMemcpyFromSymbol(&answer, "kernel_gpu_answer", sizeof(answer), 0, cudaMemcpyFromDeviceToHost);

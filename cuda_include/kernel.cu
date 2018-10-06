@@ -9,6 +9,6 @@ __global__ void kernel_gpu(float *data, int dim,float &answer)
 {
     if (threadIdx.x < dim)
     {
-        atomicAdd(kernel_gpu_answer, data[threadIdx.x] * 2);
+        atomicAdd(&kernel_gpu_answer, data[threadIdx.x] * 2);
     }
 }

@@ -9,7 +9,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_D
 #set_source_files_properties( kernel.cu PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
 
 add_library(cluster STATIC
-    cuda_include/kernel.cuh
+    cuda_include/kernel.cu
 )
 target_compile_features(cluster PUBLIC cxx_std_14)
 set_target_properties(cluster PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
@@ -17,7 +17,7 @@ set_target_properties(cluster PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 # COMPILE AND LINK
 #cuda_add_executable(algorithm ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithm.cpp)
 
-set_source_files_properties( algorithm.cpp PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
+set_source_files_properties( src/algorithm.cpp PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
 add_executable(algorithm src/algorithm.cpp)
 
 set_property(TARGET algorithm PROPERTY CUDA_SEPARABLE_COMPILATION ON)
