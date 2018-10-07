@@ -3,15 +3,27 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <numeric>
+#include <math.h>
 
 #include "read_iris.h"
 
-__global__ void kernel_gpu(float *data, int dim, float *answer)
+__global__ void xTx(float *data, int dim, float *answer)
 {
     if (threadIdx.x < dim)
     {
         atomicAdd(answer, data[threadIdx.x] * 2);
     }
+}
+
+__global__ void kernel_gpu(float *data, int dim, float *answer)
+{
+    float *mult = new float;
+    *mult = 0.0;
+    xTx<<<1, dim>>>(data, dim, mult);
+    __syncthreads();
+    printf("inside cuda %f",*mult);
+    // expf single precision
+    *answer = expf(-0.5 * (*mult)) / (2 * pow(M_PI, dim * 0.5));
 }
 
 int main(int argc, char **argv)
@@ -32,7 +44,7 @@ int main(int argc, char **argv)
 
     cudaMemcpy(d_test, test.data(), test.size() * sizeof(float), cudaMemcpyHostToDevice);
 
-    kernel_gpu<<<1, 50>>>(d_test, test.size(), d_answer);
+    kernel_gpu<<<1, 1>>>(d_test, test.size(), d_answer);
     cudaDeviceSynchronize();
 
     answer = 989.123;
