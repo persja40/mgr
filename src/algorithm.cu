@@ -4,6 +4,7 @@
 #include <cuda.h>
 #include <numeric>
 #include <math.h>
+#include <stdio.h>
 
 #include "read_iris.h"
 
@@ -13,17 +14,21 @@ __global__ void xTx(float *data, int dim, float *answer)
     {
         atomicAdd(answer, data[threadIdx.x] * 2);
     }
+    printf("inside cuda\n");
 }
 
-__global__ void kernel_gpu(float *data, int dim, float *answer)
-{
-    float *mult = new float;
-    *mult = 0.0;
-    xTx<<<1, dim>>>(data, dim, mult);
-    printf("inside cuda %f",*mult);
-    // expf single precision
-    *answer = expf(-0.5 * (*mult)) / (2 * pow(M_PI, dim * 0.5));
-}
+// __global__ void kernel_gpu(float *data, int dim, float *answer)
+// {
+//     float *mult = new float;
+//     *mult = 2.0;
+//     printf("inside cuda %f",*mult);
+//     xTx<<<1,dim>>>(data, dim, mult);
+//     cudaDeviceSynchronize();
+//     printf("inside cuda %f",*mult);
+//     // expf single precision
+//     *answer = expf(-0.5 * (*mult)) / (2 * pow(M_PI, dim * 0.5));
+//     delete mult;
+// }
 
 int main(int argc, char **argv)
 {
@@ -43,7 +48,7 @@ int main(int argc, char **argv)
 
     cudaMemcpy(d_test, test.data(), test.size() * sizeof(float), cudaMemcpyHostToDevice);
 
-    kernel_gpu<<<1, 1>>>(d_test, test.size(), d_answer);
+    xTx<<<1, test.size()>>>(d_test, test.size(), d_answer);
     cudaDeviceSynchronize();
 
     answer = 989.123;
@@ -51,4 +56,5 @@ int main(int argc, char **argv)
     std::cout << "GPU: " << answer << std::endl;
     std::cout << "CPU: " << std::accumulate(begin(test), end(test), 0) << std::endl;
     cudaFree(d_test);
+    cudaFree(d_answer);
 }
