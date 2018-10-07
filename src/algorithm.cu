@@ -13,22 +13,24 @@ __global__ void xTx(float *data, int dim, float *answer)
     if (threadIdx.x < dim)
     {
         atomicAdd(answer, data[threadIdx.x] * 2);
+        printf("Hello cuda %d\n",threadIdx.x);
     }
-    printf("inside cuda\n");
 }
 
-// __global__ void kernel_gpu(float *data, int dim, float *answer)
-// {
-//     float *mult = new float;
-//     *mult = 2.0;
-//     printf("inside cuda %f",*mult);
-//     xTx<<<1,dim>>>(data, dim, mult);
-//     cudaDeviceSynchronize();
-//     printf("inside cuda %f",*mult);
-//     // expf single precision
-//     *answer = expf(-0.5 * (*mult)) / (2 * pow(M_PI, dim * 0.5));
-//     delete mult;
-// }
+__global__ void kernel_gpu(float *data, int dim, float *answer)
+{
+    // float *mult = new float;
+    // *mult = 2.0;
+    // printf("inside cuda %f", *mult);
+    xTx<<<1, dim>>>(data, dim, answer);
+    cudaDeviceSynchronize();
+    // printf("inside cuda %f", *mult);
+    // expf single precision
+    // *answer = expf(-0.5 * (*mult)) / (2 * pow(M_PI, dim * 0.5));
+    // delete mult;
+    
+    printf("kernel\n");
+}
 
 int main(int argc, char **argv)
 {
@@ -37,12 +39,15 @@ int main(int argc, char **argv)
     std::vector<float> test{0, 1, 2, 3, 4};
 
     float *d_answer;
-    cudaMallocManaged(&d_answer, sizeof(float));
-    *d_answer = 0.0;
+    cudaMalloc(&d_answer, sizeof(float));
     float *d_test;
     cudaMalloc(&d_test, test.size() * sizeof(float));
 
-    float answer = 123.456;
+    float answer = 0.0;
+    cudaMemcpy(d_answer, &answer, sizeof(answer), cudaMemcpyHostToDevice);
+    std::cout<<"DEBUG 2"<<std::endl;
+
+    // answer = 123.456;
     cudaMemcpy(&answer, d_answer, sizeof(answer), cudaMemcpyDeviceToHost);
     std::cout << "SET: " << answer << std::endl;
 
