@@ -20,7 +20,6 @@ __global__ void kernel_gpu(float *data, int dim, float *answer)
     float *mult = new float;
     *mult = 0.0;
     xTx<<<1, dim>>>(data, dim, mult);
-    __syncthreads();
     printf("inside cuda %f",*mult);
     // expf single precision
     *answer = expf(-0.5 * (*mult)) / (2 * pow(M_PI, dim * 0.5));
