@@ -1,3 +1,4 @@
 build/
 settings.json
-**/*.out
+src/gpu
+src/cpu
