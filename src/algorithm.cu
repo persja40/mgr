@@ -20,30 +20,44 @@
 
 __global__ void g_h_sum(float *data, int m, int n, float h, float *answer)
 {
-    std::printf("Hello %d %d \n", blockIdx.x, threadIdx.x);
     if (blockIdx.x < m * m)
-    {
-        int j = blockIdx.x % m;
-        int i = blockIdx.x / m;
-        float *tmp_vec;
-        cudaMalloc(&tmp_vec, n * sizeof(float));
         if (threadIdx.x < n)
-            tmp_vec[threadIdx.x] = (data[threadIdx.x + j * n] - data[threadIdx.x + i * n]) / h;
-
-        float xTx = 0.0;
-        __syncthreads();
-
-        if (threadIdx.x < n)
-            atomicAdd(&xTx, tmp_vec[threadIdx.x] * tmp_vec[threadIdx.x]);
-        __syncthreads();
-
-        if (threadIdx.x == 0)
         {
-            xTx = expf(-0.25 * xTx) / pow(4 * M_PI, n * 0.5) - 2 * expf(-0.5 * xTx) / (2 * pow(M_PI, n * 0.5));
-            atomicAdd(answer, xTx);
+            std::printf("Hello %d %d \n", blockIdx.x, threadIdx.x);
+            int j = blockIdx.x % m;
+            int i = blockIdx.x / m;
+            __shared__ float *tmp_vec;
+            if (threadIdx.x == 0)
+                cudaMalloc(&tmp_vec, n * sizeof(float));
+            __syncthreads();
+
+            tmp_vec[threadIdx.x] = (data[threadIdx.x + j * n] - data[threadIdx.x + i * n]) / h;
+            __syncthreads();
+
+            __shared__ float xTx;
+            if (threadIdx.x == 0)
+                xTx = 1.0;
+            __syncthreads();
+
+            // std::printf("Hello %d %d %f\n", blockIdx.x, threadIdx.x, xTx);
+            // __syncthreads();
+
+            atomicAdd(&xTx, tmp_vec[threadIdx.x] * tmp_vec[threadIdx.x]);
+            __syncthreads();
+
+            if (threadIdx.x == 0)
+            {
+                xTx = expf(-0.25 * xTx) / pow(4 * M_PI, n * 0.5) - 2 * expf(-0.5 * xTx) / (2 * pow(M_PI, n * 0.5));
+                atomicAdd(answer, xTx);
+            }
+
+            __syncthreads();
+            if (threadIdx.x == 0){
+                cudaFree(tmp_vec);
+                std::printf("Hello %d %d answer:%f\n", blockIdx.x, threadIdx.x, xTx);
+                std::printf("Hello %d %d answer:%f\n", blockIdx.x, threadIdx.x, *answer);
+            }
         }
-        cudaFree(tmp_vec);
-    }
 }
 
 int main(int argc, char **argv)
