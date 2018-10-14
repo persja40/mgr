@@ -6,9 +6,8 @@
 #include <math.h>
 #include <stdio.h>
 #include <cmath>
-#include <thread>
-#include <future>
-#include <atomic>
+#include <tuple>
+
 
 #include "read_iris.h"
 
@@ -36,7 +35,7 @@ __global__ void g_h_sum(float *data, int m, int n, float h, float *answer)
 
             __shared__ float xTx;
             if (threadIdx.x == 0)
-                xTx = 1.0;
+                xTx = 0.0;
             __syncthreads();
 
             // std::printf("Hello %d %d %f\n", blockIdx.x, threadIdx.x, xTx);
@@ -62,16 +61,23 @@ __global__ void g_h_sum(float *data, int m, int n, float h, float *answer)
 
 int main(int argc, char **argv)
 {
-    auto t = read_iris();
+    auto tpl = read_iris_gpu();
 
-    for(const auto e:t[0])
-        std::cout<<e<<"\t";
+    // for(const auto v:t){
+    //     for(const auto e:v)
+    //         std::cout<<e<<"\t";
+    //     std::cout<<std::endl;
+    // }
+    
+    int m = std::get<1>(tpl);
+    int n = std::get<2>(tpl);
+
+    auto& t = std::get<0>(tpl);
+
+    const float *ptr = t.data();
+    for(int i=0; i<m*n; i++)
+        std::cout<<ptr[i]<<" ";
     std::cout<<std::endl;
-
-    std::cout << "t size: " << t.size() << std::endl;
-    // std::vector<float> test{0, 1, 2, 3, 4};
-    int m = t.size();
-    int n = t[0].size();
 
     float *d_answer;
     cudaMalloc(&d_answer, sizeof(float));
@@ -82,7 +88,7 @@ int main(int argc, char **argv)
     cudaMalloc(&d_t, m * n * sizeof(float));
     cudaMemcpy(d_t, t.data(), m * n * sizeof(float), cudaMemcpyHostToDevice);
 
-    g_h_sum<<<m * m, n>>>(d_t, m, n, 2.0, d_answer);
+    g_h_sum<<<m * m, n>>>(d_t, m, n, 1.0, d_answer);
     cudaDeviceSynchronize();
 
     answer = 989.123;

@@ -21,7 +21,7 @@ float g_h_sum_cpu(std::vector<std::vector<float>> &data, float h)
         float r = 0;
         std::vector<float> tmp_vec(n, 0);
         for (int i = min; i < max; i++)
-            for (int j = min; j < m; j++)
+            for (int j = 0; j < m; j++)
             {
                 // cout << "i: " << i << "\tj :" << j << endl;
                 for (int k = 0; k < n; k++)
@@ -30,8 +30,8 @@ float g_h_sum_cpu(std::vector<std::vector<float>> &data, float h)
                 for (const auto &e : tmp_vec)
                     t += e * e;
                 // cout << "t: " << t << endl;
-                r += t;
-                // r += exp(-0.25 * t) / pow(4 * M_PI, n * 0.5) - 2 * exp(-0.5 * t) / (2 * pow(M_PI, n * 0.5));
+                // r += t;
+                r += exp(-0.25 * t) / pow(4 * M_PI, n * 0.5) - 2 * exp(-0.5 * t) / (2 * pow(M_PI, n * 0.5));
             }
         std::lock_guard lg(mtx);
         cout << "r: " << r << endl;
@@ -61,10 +61,10 @@ float g_h_sum_cpu(std::vector<std::vector<float>> &data, float h)
 
 int main(int argc, char **argv)
 {
-    auto t = read_iris();
+    auto t = read_iris_cpu();
     for (const auto e : t[0])
         std::cout << e << "\t";
     std::cout << std::endl;
-    std::cout << "t size: " << t.size() << std::endl;
+
     std::cout << "CPU: " << g_h_sum_cpu(t, 1.0) << std::endl;
 }
