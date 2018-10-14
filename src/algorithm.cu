@@ -63,6 +63,11 @@ __global__ void g_h_sum(float *data, int m, int n, float h, float *answer)
 int main(int argc, char **argv)
 {
     auto t = read_iris();
+
+    for(const auto e:t[0])
+        std::cout<<e<<"\t";
+    std::cout<<std::endl;
+
     std::cout << "t size: " << t.size() << std::endl;
     // std::vector<float> test{0, 1, 2, 3, 4};
     int m = t.size();

@@ -8,6 +8,7 @@
 #include <mutex>
 
 #include "read_iris.h"
+using namespace std;
 
 float g_h_sum_cpu(std::vector<std::vector<float>> &data, float h)
 {
@@ -20,16 +21,18 @@ float g_h_sum_cpu(std::vector<std::vector<float>> &data, float h)
         float r = 0;
         std::vector<float> tmp_vec(n, 0);
         for (int i = min; i < max; i++)
-            for (int j = 0; j < n; j++)
+            for (int j = 0; j < m; j++)
             {
                 for (int k = 0; k < n; k++)
                     tmp_vec[k] = (data[j][k] - data[i][k]) / h;
                 float t = 0.0; //xTx
                 for (const auto &e : tmp_vec)
                     t += e * e;
+                cout<<"t: "<<t<<endl;
                 r += exp(-0.25 * t) / pow(4 * M_PI, n * 0.5) - 2 * exp(-0.5 * t) / (2 * pow(M_PI, n * 0.5));
             }
         std::lock_guard lg(mtx);
+        cout<<"r: "<<r<<endl;
         answer += r;
     };
 
@@ -37,12 +40,14 @@ float g_h_sum_cpu(std::vector<std::vector<float>> &data, float h)
 
     // SHITY LAUNCH
     int tpt = static_cast<int>(std::ceil(static_cast<double>(m) / nr_threads));
+    cout<<"tpt: "<<tpt<<endl;
     for (int i = 0; i < m; i++)
     {
         int min = i * tpt;
         int max = (i + 1) * tpt;
-        if (max >= m)
+        if (max > m)
             max = 0;
+        cout<<"min: "<<min<<"\tmax: "<<max<<endl;
         fut_handler.push_back(std::async(std::launch::async, par_fun, min, max));
     }
 
@@ -55,6 +60,9 @@ float g_h_sum_cpu(std::vector<std::vector<float>> &data, float h)
 int main(int argc, char **argv)
 {
     auto t = read_iris();
+    for(const auto e:t[0])
+        std::cout<<e<<"\t";
+    std::cout<<std::endl;
     std::cout << "t size: " << t.size() << std::endl;
     std::cout << "CPU: " << g_h_sum_cpu(t, 2.0) << std::endl;
 }
