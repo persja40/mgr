@@ -30,8 +30,8 @@ float g_h_sum_cpu(std::vector<std::vector<float>> &data, float h)
                 for (const auto &e : tmp_vec)
                     t += e * e;
                 // cout << "t: " << t << endl;
-                r += t;
-                // r += exp(-0.25 * t) / pow(4 * M_PI, n * 0.5) - 2 * exp(-0.5 * t) / (2 * pow(M_PI, n * 0.5));
+                // r += t;
+                r += exp(-0.25 * t) / pow(4 * M_PI, n * 0.5) - 2 * exp(-0.5 * t) / (2 * pow(M_PI, n * 0.5));
             }
         std::lock_guard lg(mtx);
         // cout << "r: " << r << endl;

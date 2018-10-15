@@ -46,7 +46,7 @@ __global__ void g_h_sum(float *data, int m, int n, float h, float *answer)
 
             if (threadIdx.x == 0)
             {
-                // xTx = expf(-0.25 * xTx) / pow(4 * M_PI, n * 0.5) - 2 * expf(-0.5 * xTx) / (2 * pow(M_PI, n * 0.5));
+                xTx = expf(-0.25 * xTx) / pow(4 * M_PI, n * 0.5) - 2 * expf(-0.5 * xTx) / (2 * pow(M_PI, n * 0.5));
                 atomicAdd(answer, xTx);
             }
 
