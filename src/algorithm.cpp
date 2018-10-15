@@ -30,11 +30,11 @@ float g_h_sum_cpu(std::vector<std::vector<float>> &data, float h)
                 for (const auto &e : tmp_vec)
                     t += e * e;
                 // cout << "t: " << t << endl;
-                // r += t;
-                r += exp(-0.25 * t) / pow(4 * M_PI, n * 0.5) - 2 * exp(-0.5 * t) / (2 * pow(M_PI, n * 0.5));
+                r += t;
+                // r += exp(-0.25 * t) / pow(4 * M_PI, n * 0.5) - 2 * exp(-0.5 * t) / (2 * pow(M_PI, n * 0.5));
             }
         std::lock_guard lg(mtx);
-        cout << "r: " << r << endl;
+        // cout << "r: " << r << endl;
         answer += r;
     };
 
@@ -42,13 +42,13 @@ float g_h_sum_cpu(std::vector<std::vector<float>> &data, float h)
 
     // SHITY LAUNCH
     int tpt = static_cast<int>(std::ceil(static_cast<double>(m) / nr_threads));
-    cout << "tpt: " << tpt << endl;
-    for (int i = 0; i < m; i++)
+    // cout << "tpt: " << tpt << endl;
+    for (int i = 0; i < nr_threads; i++)
     {
         int min = i * tpt;
         int max = (i + 1) * tpt;
         if (max > m)
-            max = 0;
+            max = m;
         cout << "min: " << min << "\tmax: " << max << endl;
         fut_handler.push_back(std::async(std::launch::async, par_fun, min, max));
     }
@@ -62,9 +62,13 @@ float g_h_sum_cpu(std::vector<std::vector<float>> &data, float h)
 int main(int argc, char **argv)
 {
     auto t = read_iris_cpu();
-    for (const auto e : t[0])
-        std::cout << e << "\t";
-    std::cout << std::endl;
+
+    // for (const auto v : t)
+    // {
+    //     for (const auto e : v)
+    //         std::cout << e << " ";
+    //     std::cout << std::endl;
+    // }
 
     std::cout << "CPU: " << g_h_sum_cpu(t, 1.0) << std::endl;
 }

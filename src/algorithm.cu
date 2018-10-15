@@ -22,7 +22,7 @@ __global__ void g_h_sum(float *data, int m, int n, float h, float *answer)
     if (blockIdx.x < m * m)
         if (threadIdx.x < n)
         {
-            std::printf("Hello %d %d \n", blockIdx.x, threadIdx.x);
+            // std::printf("Hello %d %d \n", blockIdx.x, threadIdx.x);
             int j = blockIdx.x % m;
             int i = blockIdx.x / m;
             __shared__ float *tmp_vec;
@@ -46,38 +46,30 @@ __global__ void g_h_sum(float *data, int m, int n, float h, float *answer)
 
             if (threadIdx.x == 0)
             {
-                xTx = expf(-0.25 * xTx) / pow(4 * M_PI, n * 0.5) - 2 * expf(-0.5 * xTx) / (2 * pow(M_PI, n * 0.5));
+                // xTx = expf(-0.25 * xTx) / pow(4 * M_PI, n * 0.5) - 2 * expf(-0.5 * xTx) / (2 * pow(M_PI, n * 0.5));
                 atomicAdd(answer, xTx);
             }
 
             __syncthreads();
             if (threadIdx.x == 0){
                 cudaFree(tmp_vec);
-                std::printf("Hello %d %d answer:%f\n", blockIdx.x, threadIdx.x, xTx);
-                std::printf("Hello %d %d answer:%f\n", blockIdx.x, threadIdx.x, *answer);
+                // std::printf("Hello %d %d answer:%f\n", blockIdx.x, threadIdx.x, xTx);
+                // std::printf("Hello %d %d answer:%f\n", blockIdx.x, threadIdx.x, *answer);
             }
         }
 }
 
 int main(int argc, char **argv)
 {
-    auto tpl = read_iris_gpu();
-
-    // for(const auto v:t){
-    //     for(const auto e:v)
-    //         std::cout<<e<<"\t";
-    //     std::cout<<std::endl;
-    // }
-    
+    auto tpl = read_iris_gpu();    
     int m = std::get<1>(tpl);
     int n = std::get<2>(tpl);
 
     auto& t = std::get<0>(tpl);
 
     const float *ptr = t.data();
-    for(int i=0; i<m*n; i++)
-        std::cout<<ptr[i]<<" ";
-    std::cout<<std::endl;
+    // for(int i=0; i<m; i++)
+    //     std::cout<<ptr[i*n]<<" "<<ptr[i*n+1]<<" "<<ptr[i*n+2]<<" "<<ptr[i*n+3]<<std::endl;
 
     float *d_answer;
     cudaMalloc(&d_answer, sizeof(float));
