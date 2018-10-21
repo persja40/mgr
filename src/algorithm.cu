@@ -8,7 +8,6 @@
 #include <cmath>
 #include <tuple>
 
-
 #include "read_iris.h"
 
 /*
@@ -17,46 +16,77 @@
 ------------------------------------------------------------------------------------
 */
 
-__global__ void g_h_sum(float *data, int m, int n, float h, float *answer)
+__global__ void g_h_sum(float *data, int m, int n, float h, float *answer, float *sync_data)
 {
-    if (blockIdx.x < m * m)
-        if (threadIdx.x < n)
-        {
-            // std::printf("Hello %d %d \n", blockIdx.x, threadIdx.x);
-            int j = blockIdx.x % m;
-            int i = blockIdx.x / m;
-            __shared__ float *tmp_vec;
-            if (threadIdx.x == 0)
-                cudaMalloc(&tmp_vec, n * sizeof(float));
-            __syncthreads();
+    int min = m * threadIdx.x / 32;
+    int max;
+    if (threadIdx.x == 31) //last element <x, y> else <x, y)
+        max = m * (threadIdx.x+1) / 32 + 1;
+    else
+        max = m * (threadIdx.x+1) / 32;
+        
+    float part = 0.0;
+    for(int j=min; j<max; j++){
+        float xTx = 0.0;
+        for(int it=0; it<n; it++)
+            xTx += powf((data[blockIdx.x * n + it] - data[j * n + it]) / h, 2.0);
+        part += expf(-0.25 * xTx) / pow(4 * M_PI, n * 0.5) - 2 * expf(-0.5 * xTx) / (2 * pow(M_PI, n * 0.5));
+    }
+    // if (blockIdx.x == 0)
+    //     std::printf("threadIdx: %d \t%f \t%d : %d\n", threadIdx.x, part, min, max);
 
-            tmp_vec[threadIdx.x] = (data[threadIdx.x + j * n] - data[threadIdx.x + i * n]) / h;
-            __syncthreads();
+    atomicAdd(&sync_data[blockIdx.x], part);
+    __syncthreads();
 
-            __shared__ float xTx;
-            if (threadIdx.x == 0)
-                xTx = 0.0;
-            __syncthreads();
+    if (threadIdx.x == 0){
+        // std::printf("BlockIdx: %d \t%f\n", blockIdx.x, sync_data[blockIdx.x]);
+        atomicAdd(answer, sync_data[blockIdx.x]);
+    }
 
-            // std::printf("Hello %d %d %f\n", blockIdx.x, threadIdx.x, xTx);
-            // __syncthreads();
+    // if (threadIdx.x < n)
+    // {
+    //     // std::printf("Hello %d %d \n", blockIdx.x, threadIdx.x);
+    //     int j = blockIdx.x % m;
+    //     int i = blockIdx.x / m;
+    //     float xTx = 0.0;
+    //     for(int it=0; it<n; it++){
+    //         xTx = ((data[threadIdx.x + j * n] - data[threadIdx.x + i * n]) / h) * ((data[threadIdx.x + j * n] - data[threadIdx.x + i * n]) / h);
+    //     }
+    //     xTx = expf(-0.25 * xTx) / pow(4 * M_PI, n * 0.5) - 2 * expf(-0.5 * xTx) / (2 * pow(M_PI, n * 0.5));
+    //     // atomicAdd(answer, xTx);
 
-            atomicAdd(&xTx, tmp_vec[threadIdx.x] * tmp_vec[threadIdx.x]);
-            __syncthreads();
+    //     // __shared__ float *tmp_vec;
+    //     // if (threadIdx.x == 0)
+    //     //     cudaMalloc(&tmp_vec, n * sizeof(float));
+    //     // __syncthreads();
 
-            if (threadIdx.x == 0)
-            {
-                xTx = expf(-0.25 * xTx) / pow(4 * M_PI, n * 0.5) - 2 * expf(-0.5 * xTx) / (2 * pow(M_PI, n * 0.5));
-                atomicAdd(answer, xTx);
-            }
+    //     // tmp_vec[threadIdx.x] = (data[threadIdx.x + j * n] - data[threadIdx.x + i * n]) / h;
+    //     // __syncthreads();
 
-            __syncthreads();
-            if (threadIdx.x == 0){
-                cudaFree(tmp_vec);
-                // std::printf("Hello %d %d answer:%f\n", blockIdx.x, threadIdx.x, xTx);
-                // std::printf("Hello %d %d answer:%f\n", blockIdx.x, threadIdx.x, *answer);
-            }
-        }
+    //     // __shared__ float xTx;
+    //     // if (threadIdx.x == 0)
+    //     //     xTx = 0.0;
+    //     // __syncthreads();
+
+    //     // // std::printf("Hello %d %d %f\n", blockIdx.x, threadIdx.x, xTx);
+    //     // // __syncthreads();
+
+    //     // atomicAdd(&xTx, tmp_vec[threadIdx.x] * tmp_vec[threadIdx.x]);
+    //     // __syncthreads();
+
+    //     // if (threadIdx.x == 0)
+    //     // {
+    //     //     xTx = expf(-0.25 * xTx) / pow(4 * M_PI, n * 0.5) - 2 * expf(-0.5 * xTx) / (2 * pow(M_PI, n * 0.5));
+    //     //     atomicAdd(answer, xTx);
+    //     // }
+
+    //     // __syncthreads();
+    //     // if (threadIdx.x == 0){
+    //     //     cudaFree(tmp_vec);
+    //     //     // std::printf("Hello %d %d answer:%f\n", blockIdx.x, threadIdx.x, xTx);
+    //     //     // std::printf("Hello %d %d answer:%f\n", blockIdx.x, threadIdx.x, *answer);
+    //     // }
+    // }
 }
 
 int main(int argc, char **argv)
@@ -80,9 +110,14 @@ int main(int argc, char **argv)
     cudaMalloc(&d_t, m * n * sizeof(float));
     cudaMemcpy(d_t, t.data(), m * n * sizeof(float), cudaMemcpyHostToDevice);
 
-    g_h_sum<<<m * m, n>>>(d_t, m, n, 1.0, d_answer);
-    cudaDeviceSynchronize();
+    float *sync_data;
+    cudaMalloc(&sync_data, m * sizeof(float));
+    cudaMemset(sync_data, 0, m * sizeof(float));
 
+    // for(int i=0; i< 1000; i++){
+        g_h_sum<<<m, 32>>>(d_t, m, n, 1.0, d_answer, sync_data);
+        cudaDeviceSynchronize();
+    // }
     answer = 989.123;
     cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
     std::cout << "GPU: " << answer << std::endl;

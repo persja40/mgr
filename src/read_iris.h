@@ -9,10 +9,12 @@
 #include <iterator>
 #include <tuple>
 
+std::string fn = "../data/iris.data";
+
 std::vector<std::vector<float>> read_iris_cpu()
 {
     std::vector<std::vector<float>> result{};
-    std::ifstream fs("../data/iris.data", std::ios_base::in);
+    std::ifstream fs(fn, std::ios_base::in);
     for (std::string line; std::getline(fs, line);) //read stream line by line
     {
         // std::cout << "line :" << line << std::endl;
@@ -28,7 +30,7 @@ std::vector<std::vector<float>> read_iris_cpu()
 std::tuple<std::vector<float>,int,int> read_iris_gpu()
 {
     std::vector<float> result{};
-    std::ifstream fs("../data/iris.data", std::ios_base::in);
+    std::ifstream fs(fn, std::ios_base::in);
     int m = 0;
     for (std::string line; std::getline(fs, line);) //read stream line by line
     {

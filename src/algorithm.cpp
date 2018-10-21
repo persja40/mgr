@@ -49,7 +49,7 @@ float g_h_sum_cpu(std::vector<std::vector<float>> &data, float h)
         int max = (i + 1) * tpt;
         if (max > m)
             max = m;
-        cout << "min: " << min << "\tmax: " << max << endl;
+        // cout << "min: " << min << "\tmax: " << max << endl;
         fut_handler.push_back(std::async(std::launch::async, par_fun, min, max));
     }
 
@@ -70,5 +70,7 @@ int main(int argc, char **argv)
     //     std::cout << std::endl;
     // }
 
+    // for (int i = 0; i < 1000; i++)
+    // g_h_sum_cpu(t, 1.0);
     std::cout << "CPU: " << g_h_sum_cpu(t, 1.0) << std::endl;
 }
