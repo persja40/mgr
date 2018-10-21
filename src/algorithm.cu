@@ -95,6 +95,8 @@ int main(int argc, char **argv)
     int m = std::get<1>(tpl);
     int n = std::get<2>(tpl);
 
+    std::cout<<"Data size: "<<m<<std::endl;
+
     auto& t = std::get<0>(tpl);
 
     const float *ptr = t.data();
@@ -103,8 +105,7 @@ int main(int argc, char **argv)
 
     float *d_answer;
     cudaMalloc(&d_answer, sizeof(float));
-    float answer = 0.0;
-    cudaMemcpy(d_answer, &answer, sizeof(float), cudaMemcpyHostToDevice);
+    cudeMemset(d_answer, 0, sizeof(float));
 
     float *d_t;
     cudaMalloc(&d_t, m * n * sizeof(float));
@@ -118,7 +119,7 @@ int main(int argc, char **argv)
         g_h_sum<<<m, 32>>>(d_t, m, n, 1.0, d_answer, sync_data);
         cudaDeviceSynchronize();
     // }
-    answer = 989.123;
+    float answer = 989.123;
     cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
     std::cout << "GPU: " << answer << std::endl;
 

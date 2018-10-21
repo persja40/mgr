@@ -62,7 +62,7 @@ float g_h_sum_cpu(std::vector<std::vector<float>> &data, float h)
 int main(int argc, char **argv)
 {
     auto t = read_iris_cpu();
-
+    std::cout << "Data size: " << t.size() << std::endl;
     // for (const auto v : t)
     // {
     //     for (const auto e : v)
