@@ -18,8 +18,9 @@ using namespace std;
     GPU
 ------------------------------------------------------------------------------------
 */
+const int THREADS_MAX =1024;
 
-__global__ void g_h_sum(float *data, int m, int n, float h, float *answer, float *sync_data)
+__global__ void g_h_sum(float *data, int m, int n, float h, float *answer)
 {
     int min = m * threadIdx.x / 32;
     int max;
@@ -28,6 +29,10 @@ __global__ void g_h_sum(float *data, int m, int n, float h, float *answer, float
     else
         max = m * (threadIdx.x + 1) / 32;
 
+    __shared__ float rr;
+    if(threadIdx.x==0)
+        rr=0;
+    __syncthreads();
     float part = 0.0;
     for (int j = min; j < max; j++)
     {
@@ -39,13 +44,13 @@ __global__ void g_h_sum(float *data, int m, int n, float h, float *answer, float
     // if (blockIdx.x == 0)
     //     std::printf("threadIdx: %d \t%f \t%d : %d\n", threadIdx.x, part, min, max);
 
-    atomicAdd(&sync_data[blockIdx.x], part);
+    atomicAdd(&rr, part);
     __syncthreads();
 
     if (threadIdx.x == 0)
     {
         // std::printf("BlockIdx: %d \t%f\n", blockIdx.x, sync_data[blockIdx.x]);
-        atomicAdd(answer, sync_data[blockIdx.x]);
+        atomicAdd(answer, rr);
     }
 
     // if (threadIdx.x < n)
@@ -94,17 +99,30 @@ __global__ void g_h_sum(float *data, int m, int n, float h, float *answer, float
     // }
 }
 
+__global__ void estimator(float *data, int m, int n,float h, float* x, float *answer){
+    int idx = blockIdx.x * THREADS_MAX + threadIdx.x;
+    if(idx<m){
+        float result = 0.0;
+        float xTx = 0;
+        for(int i=0; i<n; i++){
+            xTx= powf((x[i] - data[ idx * n + i ])/h,2.0);
+            result += expf(-0.5 * xTx) / (2 * pow(M_PI, n * 0.5));
+        }
+        atomicAdd(answer, result);
+    }
+}
+
 float goldenRatio(float *data, int m, int n, float a = 0.000001, float b = 1'000'000, float eps = 0.0001)
 {
     float *d_answer;
     cudaMalloc(&d_answer, sizeof(float));
     cudaMemset(d_answer, 0, sizeof(float));
-    float *sync_data;
-    cudaMalloc(&sync_data, m * sizeof(float));
-    cudaMemset(sync_data, 0, m * sizeof(float));
+    // float *sync_data;
+    // cudaMalloc(&sync_data, m * sizeof(float));
+    // cudaMemset(sync_data, 0, m * sizeof(float));
     float l, l1, l2, f1, f2;
     const float r = 0.618034;
-    int i=0;
+    // int i=0;
     while (fabs(b - a) > eps)
     {
         // cout<<i++<<endl;
@@ -113,20 +131,20 @@ float goldenRatio(float *data, int m, int n, float a = 0.000001, float b = 1'000
         l2 = a + r * l;
 
         //f1
-        g_h_sum<<<m, 32>>>(data, m, n, l1, d_answer, sync_data);
+        g_h_sum<<<m, 32>>>(data, m, n, l1, d_answer);
         cudaDeviceSynchronize();
         cudaMemcpy(&f1, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
         f1 = f1 / (pow(m, 2) * pow(l1, n)) + 2 / (m * pow(l1, n));
         cudaMemset(d_answer, 0, sizeof(float));
-        cudaMemset(sync_data, 0, m * sizeof(float));
+        // cudaMemset(sync_data, 0, m * sizeof(float));
 
         //f2
-        g_h_sum<<<m, 32>>>(data, m, n, l2, d_answer, sync_data);
+        g_h_sum<<<m, 32>>>(data, m, n, l2, d_answer);
         cudaDeviceSynchronize();
         cudaMemcpy(&f2, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
         f2 = f2 / (pow(m, 2) * pow(l2, n)) + 2 / (m * pow(l2, n));
         cudaMemset(d_answer, 0, sizeof(float));
-        cudaMemset(sync_data, 0, m * sizeof(float));
+        // cudaMemset(sync_data, 0, m * sizeof(float));
 
         if (f2 > f1)
             b = l2;
@@ -134,9 +152,11 @@ float goldenRatio(float *data, int m, int n, float a = 0.000001, float b = 1'000
             a = l1;
     }
     cudaFree(d_answer);
-    cudaFree(sync_data);
+    // cudaFree(sync_data);
     return l1;
 }
+
+
 
 int main(int argc, char **argv)
 {
@@ -152,9 +172,9 @@ int main(int argc, char **argv)
     // for(int i=0; i<m; i++)
     //     std::cout<<ptr[i*n]<<" "<<ptr[i*n+1]<<" "<<ptr[i*n+2]<<" "<<ptr[i*n+3]<<std::endl;
 
-    // float *d_answer;
-    // cudaMalloc(&d_answer, sizeof(float));
-    // cudaMemset(d_answer, 0, sizeof(float));
+    float *d_answer;
+    cudaMalloc(&d_answer, sizeof(float));
+    cudaMemset(d_answer, 0, sizeof(float));
 
     float *d_t;
     cudaMalloc(&d_t, m * n * sizeof(float));
@@ -163,8 +183,6 @@ int main(int argc, char **argv)
     // float *sync_data;
     // cudaMalloc(&sync_data, m * sizeof(float));
     // cudaMemset(sync_data, 0, m * sizeof(float));
-
-    // float answer = 989.123;
 
     // ofstream ofs{"g.data"};
     // for(int i=0; i<= 10000; i++){
@@ -180,11 +198,17 @@ int main(int argc, char **argv)
     // }
     // ofs.close();
 
-    // g_h_sum<<<m, 32>>>(d_t, m, n, 1.0, d_answer, sync_data);
-    // cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-    // std::cout << "GPU: " << answer << std::endl;
-    
-    std::cout<< "Min h:" << goldenRatio(d_t,m,n) <<std::endl;
+    float *x;
+    cudaMalloc(&x, n * sizeof(float));
+    cudaMemset(x, 0, n * sizeof(float));
+
+    float answer = 989.123;
+    // g_h_sum<<<m, 32>>>(d_t, m, n, 1.0, d_answer);
+    estimator<<<(m/THREADS_MAX)+1,THREADS_MAX>>>(d_t, m,n,1.0, x,d_answer);
+    cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+    std::cout << "GPU: " << answer << std::endl;
+
+    // std::cout<< "Min h:" << goldenRatio(d_t,m,n) <<std::endl;
 
     cudaFree(d_t);
     // cudaFree(d_answer);
