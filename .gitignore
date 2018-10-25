@@ -2,3 +2,5 @@ build/
 settings.json
 src/gpu
 src/cpu
+**/*.data
+**/*.png
