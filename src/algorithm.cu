@@ -20,6 +20,7 @@ using namespace std;
 ------------------------------------------------------------------------------------
 */
 const int THREADS_MAX = 1024;
+const int WARP = 32;
 
 __global__ void g_h_sum(float *data, int m, int n, float h, float *answer)
 {
@@ -88,20 +89,21 @@ __device__ void estimator(float *data, int m, int n, float h, float *x, float *a
     }
 }
 
-__global__ void alg_step(float *data,float *newData, int m, int n, float h, float dx = 0.01)
+__global__ void alg_step(float *data, float *newData, int m, int n, float h, float dx = 0.01)
 {
     float b = powf(h, 2.0) / (n + 2);
-    if(threadIdx.x == 0 && blockIdx.x == 0)
-        printf("h=%f \t b=%f\n",h,b);
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+        printf("h=%f \t b=%f\n", h, b);
     __shared__ float est_fdx;
     __shared__ float est_f;
-    __shared__ float* xdx; 
-    if(threadIdx.x == 0){
+    __shared__ float *xdx;
+    if (threadIdx.x == 0)
+    {
         est_fdx = 0.0;
         est_f = 0.0;
         cudaMalloc(&xdx, n * sizeof(float));
         memcpy(xdx, &data[blockIdx.x * n], n * sizeof(float));
-        for(int i=0; i<n;i++)
+        for (int i = 0; i < n; i++)
             xdx[i] += dx;
     }
     __syncthreads();
@@ -109,15 +111,57 @@ __global__ void alg_step(float *data,float *newData, int m, int n, float h, floa
     //     for(int i=0; i<n;i++)
     //         printf("i:%d \t %f \t %f\n", i, xdx[i], data[blockIdx.x *n +i]);
     // }
-    estimator(data,m,n,h,xdx,&est_fdx);
-    estimator(data,m,n,h,&data[blockIdx.x * n],&est_f);
+    estimator(data, m, n, h, xdx, &est_fdx);
+    estimator(data, m, n, h, &data[blockIdx.x * n], &est_f);
     __syncthreads();
-    if(threadIdx.x == 0){
-        printf("blockIdx: %d \t est_fdx=%f \t est_f=%f\n",blockIdx.x, est_fdx, est_f);
-        for(int i=0;i<n;i++)
-            newData[blockIdx.x * n + i] = data[blockIdx.x * n + i] + b*(est_fdx - est_f)/(dx * est_f);
+    if (threadIdx.x == 0)
+    {
+        // printf("blockIdx: %d \t est_fdx=%f \t est_f=%f\n", blockIdx.x, est_fdx, est_f);
+        for (int i = 0; i < n; i++)
+            newData[blockIdx.x * n + i] = data[blockIdx.x * n + i] + b * (est_fdx - est_f) / (dx * est_f);
         cudaFree(xdx);
     }
+}
+
+__global__ void distance(float *data, int m, int n, float *answer)
+{
+    int dataSize = m - blockIdx.x - 1; //remove itself
+    int div = dataSize / WARP;
+    int rest = dataSize % WARP;
+    int part_size;
+    __shared__ float rr;
+    if (threadIdx.x == 0)
+        rr = 0.0;
+    __syncthreads();
+    int start, stop;
+    float part = 0.0;
+    if (threadIdx.x < rest)
+    {
+        start = threadIdx.x * (div + 1);
+        stop = start + (div + 1);
+        part_size = div + 1;
+    }
+    else
+    {
+        start = rest * (div + 1) + abs(static_cast<int>(threadIdx.x - rest)) * div;
+        stop = start + div;
+        part_size = div;
+    }
+    if (stop < dataSize)
+    {
+        int offset = (blockIdx.x+1) * n;
+        for (int i = 0; i < part_size; i++)
+        {
+            float sum_sq = 0.0;
+            for(int j=0; j<n; j++)
+                sum_sq += powf( data[blockIdx.x*n + j] - data[offset + (start+i)*n + j] ,2.0);
+            part+= sqrt(sum_sq);
+        }
+    }
+    atomicAdd(&rr, part);
+    __syncthreads();
+    if (threadIdx.x == 0)
+        atomicAdd(answer, rr);
 }
 
 float goldenRatio(float *data, int m, int n, float a = 0.000001, float b = 1'000'000, float eps = 0.0001)
@@ -181,7 +225,7 @@ int main(int argc, char **argv)
     float *d_t2;
     cudaMalloc(&d_t2, m * n * sizeof(float));
     cudaMemcpy(d_t2, t.data(), m * n * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemset(d_t2, 0, m*n*sizeof(float));
+    cudaMemset(d_t2, 0, m * n * sizeof(float));
     // ofstream ofs{"g.data"};
     // for(int i=0; i<= 10000; i++){
     //     float h = i;
@@ -204,26 +248,40 @@ int main(int argc, char **argv)
     // g_h_sum<<<m, 32>>>(d_t, m, n, 1.0, d_answer);
     // cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
     // std::cout << "GPU: " << answer << std::endl;
-    cout<<"starting golden"<<endl;
-    float h = goldenRatio(d_t,m,n);
-    cout<<"finished golden"<<endl;
-    alg_step<<<m,32>>>(d_t, d_t2, m, n, h);
+    cout << "starting golden" << endl;
+    float h = goldenRatio(d_t, m, n);
+    cout << "finished golden" << endl;
+    alg_step<<<m, 32>>>(d_t, d_t2, m, n, h);
     cudaDeviceSynchronize();
-    float *test= new float[m * n];
-    cudaMemcpy(test, d_t, m * n * sizeof(float), cudaMemcpyDeviceToHost);
-    float *test2= new float[m * n];
-    cudaMemcpy(test2, d_t2, m * n * sizeof(float), cudaMemcpyDeviceToHost);
-    for(int i=0; i<m;i++){
-        for(int j=0; j<4;j++)
-            cout<<test[i*n+j]<<" ";
-        cout<<"\t";
-        for(int j=0; j<4;j++)
-            cout<<test2[i*n+j]<<" ";
-        cout<<endl;
-    }
+    // float *test = new float[m * n];
+    // cudaMemcpy(test, d_t, m * n * sizeof(float), cudaMemcpyDeviceToHost);
+    // float *test2 = new float[m * n];
+    // cudaMemcpy(test2, d_t2, m * n * sizeof(float), cudaMemcpyDeviceToHost);
+    // for (int i = 0; i < m; i++)
+    // {
+    //     for (int j = 0; j < 4; j++)
+    //         cout << test[i * n + j] << " ";
+    //     cout << "\t";
+    //     for (int j = 0; j < 4; j++)
+    //         cout << test2[i * n + j] << " ";
+    //     cout << endl;
+    // }
 
+
+    float answer = 989.123;
+    distance<<<m, 32>>>(d_t, m, n, d_answer);
+    cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+    std::cout << "GPU: " << answer << std::endl;
+    distance<<<m, 32>>>(d_t2, m, n, d_answer);
+    cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+    std::cout << "GPU: " << answer << std::endl;
+    alg_step<<<m, 32>>>(d_t2, d_t, m, n, h);
+    cudaDeviceSynchronize();
+    distance<<<m, 32>>>(d_t, m, n, d_answer);
+    cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+    std::cout << "GPU: " << answer << std::endl;
 
     cudaFree(d_t);
-    cudaFree(d_t2);    
+    cudaFree(d_t2);
     // cudaFree(d_answer);
 }
