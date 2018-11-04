@@ -9,6 +9,7 @@
 #include <tuple>
 #include <fstream>
 #include <cstring>
+#include <limits>
 
 #include "read_iris.h"
 
@@ -92,8 +93,8 @@ __device__ void estimator(float *data, int m, int n, float h, float *x, float *a
 __global__ void alg_step(float *data, float *newData, int m, int n, float h, float dx = 0.01)
 {
     float b = powf(h, 2.0) / (n + 2);
-    if (threadIdx.x == 0 && blockIdx.x == 0)
-        printf("h=%f \t b=%f\n", h, b);
+    // if (threadIdx.x == 0 && blockIdx.x == 0)
+    //     printf("h=%f \t b=%f\n", h, b);
     __shared__ float est_fdx;
     __shared__ float est_f;
     __shared__ float *xdx;
@@ -164,6 +165,10 @@ __global__ void distance(float *data, int m, int n, float *answer)
         atomicAdd(answer, rr);
 }
 
+__global__ void distanceArray(float *data, int m, int n, int d_size, float *d_array){
+
+}
+
 float goldenRatio(float *data, int m, int n, float a = 0.000001, float b = 1'000'000, float eps = 0.0001)
 {
     float *d_answer;
@@ -200,6 +205,55 @@ float goldenRatio(float *data, int m, int n, float a = 0.000001, float b = 1'000
     return l1;
 }
 
+void stopCondition(float *data, int m, int n, float h, float alpha = 0.001){
+    float *d_answer;
+    cudaMalloc(&d_answer, sizeof(float));
+    cudaMemset(d_answer, 0, sizeof(float));
+    float d0, dk_m1, dk;
+    
+    dk_m1 = std::numeric_limits<float>::max();
+    distance<<<m, 32>>>(data, m, n, d_answer);
+    cudaDeviceSynchronize();
+    cudaMemcpy(&d0, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemset(d_answer, 0, sizeof(float));
+    dk = d0;
+
+    float *data_tmp;
+    cudaMalloc(&data_tmp, m * n * sizeof(float));
+
+
+    int ctr=0;
+    while(std::fabs(dk - dk_m1) > d0*alpha){
+        alg_step<<<m, WARP>>>(data, data_tmp, m, n, h);
+        cudaDeviceSynchronize();
+        std::swap(data, data_tmp);
+
+        printf("ctr: %d \t %f \n", ctr++, std::fabs(dk - dk_m1));
+
+        dk_m1 = dk;
+        cudaMemset(d_answer, 0, sizeof(float));
+        distance<<<m, 32>>>(data, m, n, d_answer);
+        cudaDeviceSynchronize();
+        cudaMemcpy(&dk, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+    }
+    cudaFree(data_tmp);
+    cudaFree(d_answer);
+}
+
+float kernelDistance(float *data, int m, int n){
+    float *d_answer;
+    cudaMalloc(&d_answer, sizeof(float));
+    cudaMemset(d_answer, 0, sizeof(float));
+    int dist_size = m*(m-1)/2;
+    float *d_dist;
+    cudaMalloc(&d_dist, dist_size * sizeof(float));
+
+
+    
+    cudaFree(d_answer);
+    cudaFree(d_dist);
+}
+
 int main(int argc, char **argv)
 {
     auto tpl = read_iris_gpu();
@@ -210,9 +264,9 @@ int main(int argc, char **argv)
 
     auto &t = std::get<0>(tpl);
 
-    // const float *ptr = t.data();
-    // for(int i=0; i<m; i++)
-    //     std::cout<<ptr[i*n]<<" "<<ptr[i*n+1]<<" "<<ptr[i*n+2]<<" "<<ptr[i*n+3]<<std::endl;
+// const float *ptr = t.data();
+// for(int i=0; i<m; i++)
+//     std::cout<<ptr[i*n]<<" "<<ptr[i*n+1]<<" "<<ptr[i*n+2]<<" "<<ptr[i*n+3]<<std::endl;
 
     float *d_answer;
     cudaMalloc(&d_answer, sizeof(float));
@@ -222,66 +276,73 @@ int main(int argc, char **argv)
     cudaMalloc(&d_t, m * n * sizeof(float));
     cudaMemcpy(d_t, t.data(), m * n * sizeof(float), cudaMemcpyHostToDevice);
 
-    float *d_t2;
-    cudaMalloc(&d_t2, m * n * sizeof(float));
-    cudaMemcpy(d_t2, t.data(), m * n * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemset(d_t2, 0, m * n * sizeof(float));
-    // ofstream ofs{"g.data"};
-    // for(int i=0; i<= 10000; i++){
-    //     float h = i;
-    //     g_h_sum<<<m, 32>>>(d_t, m, n, h, d_answer, sync_data);
-    //     cudaDeviceSynchronize();
-    //     cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-    //     answer = answer/(pow(m,2)*pow(h,n)) + 2/(m * pow(h,n));
-    //     ofs << h << "\t" << answer << endl;
-    //     cudaMemset(d_answer, 0, sizeof(float));
-    //     cudaMemset(sync_data, 0, m * sizeof(float));
-    //     cout<<h <<"\t"<< answer<<endl;
-    // }
-    // ofs.close();
+    // float *d_t2;
+    // cudaMalloc(&d_t2, m * n * sizeof(float));
+    // cudaMemcpy(d_t2, t.data(), m * n * sizeof(float), cudaMemcpyHostToDevice);
+    // cudaMemset(d_t2, 0, m * n * sizeof(float));
 
-    // float *x;
-    // cudaMalloc(&x, n * sizeof(float));
-    // cudaMemset(x, 0, n * sizeof(float));
 
-    // float answer = 989.123;
-    // g_h_sum<<<m, 32>>>(d_t, m, n, 1.0, d_answer);
-    // cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-    // std::cout << "GPU: " << answer << std::endl;
+// ofstream ofs{"g.data"};
+// for(int i=0; i<= 10000; i++){
+//     float h = i;
+//     g_h_sum<<<m, 32>>>(d_t, m, n, h, d_answer, sync_data);
+//     cudaDeviceSynchronize();
+//     cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+//     answer = answer/(pow(m,2)*pow(h,n)) + 2/(m * pow(h,n));
+//     ofs << h << "\t" << answer << endl;
+//     cudaMemset(d_answer, 0, sizeof(float));
+//     cudaMemset(sync_data, 0, m * sizeof(float));
+//     cout<<h <<"\t"<< answer<<endl;
+// }
+// ofs.close();
+
+// float *x;
+// cudaMalloc(&x, n * sizeof(float));
+// cudaMemset(x, 0, n * sizeof(float));
+
+// float answer = 989.123;
+// g_h_sum<<<m, 32>>>(d_t, m, n, 1.0, d_answer);
+// cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+// std::cout << "GPU: " << answer << std::endl;
+
     cout << "starting golden" << endl;
     float h = goldenRatio(d_t, m, n);
     cout << "finished golden" << endl;
-    alg_step<<<m, 32>>>(d_t, d_t2, m, n, h);
-    cudaDeviceSynchronize();
-    // float *test = new float[m * n];
-    // cudaMemcpy(test, d_t, m * n * sizeof(float), cudaMemcpyDeviceToHost);
-    // float *test2 = new float[m * n];
-    // cudaMemcpy(test2, d_t2, m * n * sizeof(float), cudaMemcpyDeviceToHost);
-    // for (int i = 0; i < m; i++)
-    // {
-    //     for (int j = 0; j < 4; j++)
-    //         cout << test[i * n + j] << " ";
-    //     cout << "\t";
-    //     for (int j = 0; j < 4; j++)
-    //         cout << test2[i * n + j] << " ";
-    //     cout << endl;
-    // }
+
+    stopCondition(d_t, m, n, h);
+
+// alg_step<<<m, 32>>>(d_t, d_t2, m, n, h);
+// cudaDeviceSynchronize();
+
+// float *test = new float[m * n];
+// cudaMemcpy(test, d_t, m * n * sizeof(float), cudaMemcpyDeviceToHost);
+// float *test2 = new float[m * n];
+// cudaMemcpy(test2, d_t2, m * n * sizeof(float), cudaMemcpyDeviceToHost);
+// for (int i = 0; i < m; i++)
+// {
+//     for (int j = 0; j < 4; j++)
+//         cout << test[i * n + j] << " ";
+//     cout << "\t";
+//     for (int j = 0; j < 4; j++)
+//         cout << test2[i * n + j] << " ";
+//     cout << endl;
+// }
 
 
-    float answer = 989.123;
-    distance<<<m, 32>>>(d_t, m, n, d_answer);
-    cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-    std::cout << "GPU: " << answer << std::endl;
-    distance<<<m, 32>>>(d_t2, m, n, d_answer);
-    cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-    std::cout << "GPU: " << answer << std::endl;
-    alg_step<<<m, 32>>>(d_t2, d_t, m, n, h);
-    cudaDeviceSynchronize();
-    distance<<<m, 32>>>(d_t, m, n, d_answer);
-    cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-    std::cout << "GPU: " << answer << std::endl;
+// float answer = 989.123;
+// distance<<<m, 32>>>(d_t, m, n, d_answer);
+// cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+// std::cout << "GPU: " << answer << std::endl;
+// distance<<<m, 32>>>(d_t2, m, n, d_answer);
+// cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+// std::cout << "GPU: " << answer << std::endl;
+// alg_step<<<m, 32>>>(d_t2, d_t, m, n, h);
+// cudaDeviceSynchronize();
+// distance<<<m, 32>>>(d_t, m, n, d_answer);
+// cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+// std::cout << "GPU: " << answer << std::endl;
 
     cudaFree(d_t);
-    cudaFree(d_t2);
+    // cudaFree(d_t2);
     // cudaFree(d_answer);
 }
