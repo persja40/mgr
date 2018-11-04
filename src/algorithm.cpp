@@ -71,6 +71,6 @@ int main(int argc, char **argv)
     // }
 
     // for (int i = 0; i < 1000; i++)
-    // g_h_sum_cpu(t, 1.0);
+    g_h_sum_cpu(t, 1.0);
     std::cout << "CPU: " << g_h_sum_cpu(t, 1.0) << std::endl;
 }
