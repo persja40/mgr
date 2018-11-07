@@ -274,6 +274,61 @@ __global__ void estimatorToSiArray(float *data, int d_size, float s_avg, float c
         data[idx] = pow(data[idx] / s_avg, -c);
 }
 
+__global__ void smallestXd(float *d, float *si, int d_size, float x_d, float h, float sigma, int *answer)
+{
+    if (*answer != 0)
+    {
+        float x = std::pow(10, blockIdx.x / 9 - 1) * (blockIdx.x - blockIdx.x / 9);
+        float ds;
+        switch (threadIdx.x / WARP)
+        {
+        case 0:
+            ds = -sigma * 0.01;
+            break;
+        case 1:
+            ds = 0.0;
+            break;
+        case 2:
+            ds = sigma * 0.01;
+            break;
+        }
+        __shared__ float f_m, f, f_p; //f -sigma, f, f+sigma
+        if (threadIdx.x == 0)
+        {
+            f_m = 0.0;
+            f = 0.0;
+            f_p = 0.0;
+        }
+        __syncthreads();
+        int thread_nr = threadIdx.x % WARP;
+
+        int min = d_size * thread_nr / 32;
+        int max;
+        if (thread_nr == 31) //last element <x, y> else <x, y)
+            max = d_size * (thread_nr + 1) / 32 + 1;
+        else
+            max = d_size * (thread_nr + 1) / 32;
+
+        float result = 0.0;
+        for (int j = min; j < max; j++)
+        {
+            float xTx = powf((x_d + ds - d[j]) / (h * si[j]), 2.0);
+            result += (expf(-0.5 * xTx) / (2 * pow(M_PI, 1 * 0.5))) / si[j];
+        }
+        if (ds < 0)
+            atomicAdd(&f_m, result);
+        else if (ds > 0)
+            atomicAdd(&f_p, result);
+        else
+            atomicAdd(&f, result);
+
+        __syncthreads();
+        if (threadIdx.x == 0) // *1/(m* h^n) not necessary
+            if (f_m >= f || f > f_p)
+                atomicExch(answer, 0);
+    }
+}
+
 /********************************************************
 WRAPERS
 ********************************************************/
@@ -410,16 +465,34 @@ float kernelDistance(float *data, int m, int n)
     estimatorToSiArray<<<(dist_size / THREADS_MAX) + 1, THREADS_MAX>>>(si, dist_size, si_avg); //now si is si ;D
     cudaDeviceSynchronize();
 
-    
-    std::cout<<sigma_d<<"\t"<<si_avg<<std::endl;
-    // std::cin.sync();
-    // std::cin.get();
+    // Find x_d
 
+    std::cout << sigma_d << "\t" << si_avg << std::endl;
+    float xd;
+    int flags = 1;
+    int *flags_d;
+    cudaMalloc(&flags_d, sizeof(int));
+    cudaMemcpy(flags_d, &flags, sizeof(int), cudaMemcpyHostToDevice);
+    std::cout << "MAX DS: " << (static_cast<int>(100 * D) - 1) * sigma_d << std::endl;
+    for (float ds = 0.01; ds <= (static_cast<int>(100 * D) - 1); ds += 0.01)
+    {
+        xd = ds * sigma_d;
+        // std::cout<<xd<<std::endl;
+        smallestXd<<<7 * 9, WARP * 3>>>(d_dist, si, dist_size, xd, h_d, sigma_d, flags_d);
+        cudaDeviceSynchronize();
+        cudaMemcpy(&flags, flags_d, sizeof(int), cudaMemcpyDeviceToHost);
+        if (flags == 0)
+            break;
+        flags = 1;
+        cudaMemcpy(flags_d, &flags, sizeof(int), cudaMemcpyHostToDevice);
+    }
+
+    cudaFree(flags_d);
     cudaFree(d_answer);
     cudaFree(d_dist);
     cudaFree(si);
 
-    return 0.0;
+    return xd;
 }
 
 int main(int argc, char **argv)
@@ -478,7 +551,7 @@ int main(int argc, char **argv)
 
     stopCondition(d_t, m, n, h);
 
-    kernelDistance(d_t, m, n);
+    std::cout << "kernel distance result: " << kernelDistance(d_t, m, n) << std::endl;
 
     // alg_step<<<m, 32>>>(d_t, d_t2, m, n, h);
     // cudaDeviceSynchronize();
