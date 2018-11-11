@@ -583,6 +583,11 @@ int main(int argc, char **argv)
     float distance = kernelDistance(d_t, m, n);
     std::cout<<"Kernel distance: "<<distance<<std::endl;
 
+    std::cout<<t[0]<<"\t";
+
+    cudaMemcpy(t.data(), d_t, m * n * sizeof(float), cudaMemcpyDeviceToHost); //k* to host
+    std::cout<<t[0]<<std::endl;
+
     std::list<std::vector<float>> l;
     for(int i=0; i<m;i++)
         l.push_back({t[i*n],t[i*n+1],t[i*n+2],t[i*n+3]});
