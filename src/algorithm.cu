@@ -11,6 +11,7 @@
 #include <cstring>
 #include <limits>
 #include <list>
+#include <utility>
 
 #include "read_iris.h"
 
@@ -506,9 +507,10 @@ std::vector<std::vector<std::vector<float>>> makeClusters(std::list<std::vector<
             s += std::abs(v1[i] - v2[i]);
         return std::sqrt(s);
     };
-    std::vector<std::vector<std::vector<float>>> clusters(1, std::vector<std::vector<float>>());
+    std::vector<std::vector<std::vector<float>>> clusters{};
     int cluster_nr= 0;
     while(!l.empty()){
+        clusters.push_back(std::vector<std::vector<float>>());
         clusters[cluster_nr].push_back(*begin(l));
         l.erase(begin(l));
         for(int i=0; i<clusters[cluster_nr].size(); i++)
@@ -588,17 +590,17 @@ int main(int argc, char **argv)
     cudaMemcpy(t.data(), d_t, m * n * sizeof(float), cudaMemcpyDeviceToHost); //k* to host
     std::cout<<t[0]<<std::endl;
 
-    std::list<std::vector<float>> l;
+    std::list<std::vector<float>> l{};
     for(int i=0; i<m;i++)
         l.push_back({t[i*n],t[i*n+1],t[i*n+2],t[i*n+3]});
 
-    auto clusters = makeClusters(l, distance);
+    auto clusters = makeClusters(l, 1.0f);
     std::cout<<"Clusters nr:" << clusters.size() << std::endl;
     for(const auto &e: clusters)
         std::cout<<e.size()<<"\t";
 
     std::cout<<"\nFINISHED"<<std::endl;
-    std::cout<<l.empty();
+    std::cout<<l.empty()<<std::endl;
 
     // alg_step<<<m, 32>>>(d_t, d_t2, m, n, h);
     // cudaDeviceSynchronize();
