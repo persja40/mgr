@@ -10,6 +10,7 @@
 #include <fstream>
 #include <cstring>
 #include <limits>
+#include <list>
 
 #include "read_iris.h"
 
@@ -347,14 +348,14 @@ float goldenRatio(float *data, int m, int n, float a = 0.000001, float b = 1'000
         l2 = a + r * l;
 
         //f1
-        g_h_sum<<<m, 32>>>(data, m, n, l1, d_answer);
+        g_h_sum<<<m, WARP>>>(data, m, n, l1, d_answer);
         cudaDeviceSynchronize();
         cudaMemcpy(&f1, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
         f1 = f1 / (pow(m, 2) * pow(l1, n)) + 2 / (m * pow(l1, n));
         cudaMemset(d_answer, 0, sizeof(float));
 
         //f2
-        g_h_sum<<<m, 32>>>(data, m, n, l2, d_answer);
+        g_h_sum<<<m, WARP>>>(data, m, n, l2, d_answer);
         cudaDeviceSynchronize();
         cudaMemcpy(&f2, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
         f2 = f2 / (pow(m, 2) * pow(l2, n)) + 2 / (m * pow(l2, n));
@@ -364,6 +365,9 @@ float goldenRatio(float *data, int m, int n, float a = 0.000001, float b = 1'000
             b = l2;
         else
             a = l1;
+        
+        std::cout << "a: "<<a<<"\tb: "<<b<<std::endl;
+        std::cout<<"mod: "<< fabs(b - a)<<"\t"<<eps<<std::endl;
     }
     cudaFree(d_answer);
     return l1;
@@ -495,6 +499,31 @@ float kernelDistance(float *data, int m, int n)
     return xd;
 }
 
+std::vector<std::vector<std::vector<float>>> makeClusters(std::list<std::vector<float>> &l, float dist){
+    auto d_f = [](std::vector<float> &v1, std::vector<float> &v2){
+        float s= 0;
+        for(int i=0; i<v1.size();i++)
+            s += std::abs(v1[i] - v2[i]);
+        return std::sqrt(s);
+    };
+    std::vector<std::vector<std::vector<float>>> clusters(1, std::vector<std::vector<float>>());
+    int cluster_nr= 0;
+    while(!l.empty()){
+        clusters[cluster_nr].push_back(*begin(l));
+        l.erase(begin(l));
+        for(int i=0; i<clusters[cluster_nr].size(); i++)
+            for(auto it = l.begin(); it!=l.end();){
+                if( d_f(*it, clusters[cluster_nr][i]) <= dist){
+                    clusters[cluster_nr].push_back(*it);
+                    it = l.erase(it);
+                }else
+                    it++;
+            }
+        cluster_nr++;
+    };
+    return clusters;
+}
+
 int main(int argc, char **argv)
 {
     auto tpl = read_iris_gpu();
@@ -551,7 +580,20 @@ int main(int argc, char **argv)
 
     stopCondition(d_t, m, n, h);
 
-    std::cout << "kernel distance result: " << kernelDistance(d_t, m, n) << std::endl;
+    float distance = kernelDistance(d_t, m, n);
+    std::cout<<"Kernel distance: "<<distance<<std::endl;
+
+    std::list<std::vector<float>> l;
+    for(int i=0; i<m;i++)
+        l.push_back({t[i*n],t[i*n+1],t[i*n+2],t[i*n+3]});
+
+    auto clusters = makeClusters(l, distance);
+    std::cout<<"Clusters nr:" << clusters.size() << std::endl;
+    for(const auto &e: clusters)
+        std::cout<<e.size()<<"\t";
+
+    std::cout<<"\nFINISHED"<<std::endl;
+    std::cout<<l.empty();
 
     // alg_step<<<m, 32>>>(d_t, d_t2, m, n, h);
     // cudaDeviceSynchronize();
