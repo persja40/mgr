@@ -33,12 +33,12 @@ nth <0, n-1> chooses parameter
 */
 __global__ void g_h_sum(float *data, int m, int n, int nth, float h, float *answer)
 {
-    int min = m * threadIdx.x / 32;
+    int min = m * threadIdx.x / WARP;
     int max;
     if (threadIdx.x == 31) //last element <x, y> else <x, y)
-        max = m * (threadIdx.x + 1) / 32 + 1;
+        max = m * (threadIdx.x + 1) / WARP + 1;
     else
-        max = m * (threadIdx.x + 1) / 32;
+        max = m * (threadIdx.x + 1) / WARP;
 
     __shared__ float rr;
     if (threadIdx.x == 0)
@@ -60,12 +60,12 @@ __global__ void g_h_sum(float *data, int m, int n, int nth, float h, float *answ
 
 __device__ void estimator(float *data, int m, int n, float h, float *x, float *answer)
 {
-    int min = m * threadIdx.x / 32;
+    int min = m * threadIdx.x / WARP;
     int max;
     if (threadIdx.x == 31) //last element <x, y> else <x, y)
-        max = m * (threadIdx.x + 1) / 32 + 1;
+        max = m * (threadIdx.x + 1) / WARP + 1;
     else
-        max = m * (threadIdx.x + 1) / 32;
+        max = m * (threadIdx.x + 1) / WARP;
 
     __shared__ float rr;
 
@@ -302,12 +302,12 @@ __global__ void smallestXd(float *d, float *si, int d_size, float x_d, float h, 
         __syncthreads();
         int thread_nr = threadIdx.x % WARP;
 
-        int min = d_size * thread_nr / 32;
+        int min = d_size * thread_nr / WARP;
         int max;
         if (thread_nr == 31) //last element <x, y> else <x, y)
-            max = d_size * (thread_nr + 1) / 32 + 1;
+            max = d_size * (thread_nr + 1) / WARP + 1;
         else
-            max = d_size * (thread_nr + 1) / 32;
+            max = d_size * (thread_nr + 1) / WARP;
 
         float result = 0.0;
         for (int j = min; j < max; j++)
@@ -390,7 +390,7 @@ void stopCondition(float *data, int m, int n, float h, float alpha = 0.001)
     float d0, dk_m1, dk;
 
     dk_m1 = std::numeric_limits<float>::max();
-    distance<<<m, 32>>>(data, m, n, d_answer);
+    distance<<<m, WARP>>>(data, m, n, d_answer);
     cudaDeviceSynchronize();
     cudaMemcpy(&d0, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemset(d_answer, 0, sizeof(float));
@@ -410,7 +410,7 @@ void stopCondition(float *data, int m, int n, float h, float alpha = 0.001)
 
         dk_m1 = dk;
         cudaMemset(d_answer, 0, sizeof(float));
-        distance<<<m, 32>>>(data, m, n, d_answer);
+        distance<<<m, WARP>>>(data, m, n, d_answer);
         cudaDeviceSynchronize();
         cudaMemcpy(&dk, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
     }
@@ -569,7 +569,7 @@ int main(int argc, char **argv)
     // ofstream ofs{"g.data"};
     // for(int i=0; i<= 10000; i++){
     //     float h = i;
-    //     g_h_sum<<<m, 32>>>(d_t, m, n, h, d_answer, sync_data);
+    //     g_h_sum<<<m, WARP>>>(d_t, m, n, h, d_answer, sync_data);
     //     cudaDeviceSynchronize();
     //     cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
     //     answer = answer/(pow(m,2)*pow(h,n)) + 2/(m * pow(h,n));
@@ -585,7 +585,7 @@ int main(int argc, char **argv)
     // cudaMemset(x, 0, n * sizeof(float));
 
     // float answer = 989.123;
-    // g_h_sum<<<m, 32>>>(d_t, m, n, 1.0, d_answer);
+    // g_h_sum<<<m, WARP>>>(d_t, m, n, 1.0, d_answer);
     // cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
     // std::cout << "GPU: " << answer << std::endl;
 
@@ -618,7 +618,7 @@ int main(int argc, char **argv)
                                     // std::cout << l.empty() << std::endl;
 */
 
-    // alg_step<<<m, 32>>>(d_t, d_t2, m, n, h);
+    // alg_step<<<m, WARP>>>(d_t, d_t2, m, n, h);
     // cudaDeviceSynchronize();
 
     // float *test = new float[m * n];
@@ -636,15 +636,15 @@ int main(int argc, char **argv)
     // }
 
     // float answer = 989.123;
-    // distance<<<m, 32>>>(d_t, m, n, d_answer);
+    // distance<<<m, WARP>>>(d_t, m, n, d_answer);
     // cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
     // std::cout << "GPU: " << answer << std::endl;
-    // distance<<<m, 32>>>(d_t2, m, n, d_answer);
+    // distance<<<m, WARP>>>(d_t2, m, n, d_answer);
     // cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
     // std::cout << "GPU: " << answer << std::endl;
-    // alg_step<<<m, 32>>>(d_t2, d_t, m, n, h);
+    // alg_step<<<m, WARP>>>(d_t2, d_t, m, n, h);
     // cudaDeviceSynchronize();
-    // distance<<<m, 32>>>(d_t, m, n, d_answer);
+    // distance<<<m, WARP>>>(d_t, m, n, d_answer);
     // cudaMemcpy(&answer, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
     // std::cout << "GPU: " << answer << std::endl;
 
