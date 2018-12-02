@@ -94,12 +94,12 @@ __device__ void estimator(float *data, int m, int n, float *h, float *x, float *
 
     if (threadIdx.x == 0)
     {
-        cudaFree(rr);
         for (int i = 0; i < n; i++)
         {
             rr[i] = rr[i] / (m * h[i]);
             atomicAdd(answer + i, rr[i]);
         }
+        cudaFree(rr);
     }
 }
 
@@ -360,7 +360,7 @@ std::vector<float> goldenRatio(float *data, int m, int n, float a_u = 0.000001, 
     std::vector<float> result{};
     for (int nth = 0; nth < n; nth++)
     {
-        cout << "NTH: " << nth << endl;
+        // cout << "NTH: " << nth << endl;
         float a = a_u;
         float b = b_u;
         float l, l1, l2, f1, f2;
@@ -390,11 +390,11 @@ std::vector<float> goldenRatio(float *data, int m, int n, float a_u = 0.000001, 
             else
                 a = l1;
 
-            std::cout << "a: " << a << "\tb: " << b << std::endl;
-            std::cout << "mod: " << fabs(b - a) << "\t" << eps << std::endl;
+            // std::cout << "a: " << a << "\tb: " << b << std::endl;
+            // std::cout << "mod: " << fabs(b - a) << "\t" << eps << std::endl;
         }
         result.push_back(l1);
-        cout << endl;
+        // cout << endl;
     }
     cudaFree(d_answer);
     return result;
