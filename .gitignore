@@ -4,3 +4,11 @@ src/gpu
 src/cpu
 **/*.data
 **/*.png
+**/*.aux
+**/*.gz
+**/*.toc
+**/*.dvi
+**/*.pdf
+**/*.bbl
+**/*.blg
+**/*.log
