@@ -1,0 +1,52 @@
+\chapter{Wstęp}
+\label{cha:wstep}
+
+W tym rozdziale zostaną zaprezentowane metody i technologie konkurencyjne dla tematu tej pracy.
+
+\section{Klasteryzacja}
+\label{sec:klasteryzacja}
+
+\subsection{Rys historyczny}
+Początki analizy skupień sięgają roku 1932, kiedy to klasteryzacja została opisana w odniesieniu do antropologi \cite{Dri32}, skąd następnie przeniknęła do psychologii. W latach 60-tych nastąpił rozwój eksploracji danych (w tamtym czasie używano nazwy ang.data fishing) na bazie metod statystycznych operujących na stosunkowo niewielkich zbiorach danych. Wzrost dostępności komputerów spowodował olbrzymi wzrost liczności zbiorów, z którymi musiano sobie poradzić. Obecnie analiza skupień jest używana m.in. do rozróżniania tkanek na prześwietleniach, grupowania klientów, znajdywania społeczności, segmentacji obrazów, systemów rekomendacji, detekcji anomalii, lokalizacji miejsc o zagrożeniu pożarowym lub bezpieczeństwa czy śledzenia obiektów.
+
+\subsection{Algorytm k-średnich}
+Algorytm k-średnich został wprowadzony przez Jamesa MacQueena \cite{Mac67} na postawie idei żydowskiego matematyka polskiego pochodzenia Hugo Steinshausa z lwowskiej szkoły matematycznej.\newline
+Ma on za zadanie przypisać n elementów zbioru do k klastrów, gdzie k jest znane. Jest to problem NP-trudny, dlatego metoda korzysta z heurystyki, a przedstawia się ona następująco:
+\begin{enumerate}
+	\item{załóż liczbę klastrów k}
+	\item{wylosuj środki klastrów $\mu_i$}
+	\item{przypisz elementy zbioru do klastrów o najbliższym środku}
+	\item{wylicz nowe środki klastrów jako średnie elementów w skupieniu}
+	\item{wróć do punktu 3 jeśli nastąpiła zmiana przynależności do klastrów w punkcie 4}
+\end{enumerate}
+Niestety algorytm posiada kilka wad. Brak determinizmu wynika bezpośredniego z punktu 2, gdzie środki klastrów są losowane. Będzie to wpływać na przynależność szczególnie elementów znajdujących na brzegach klastrów. Kolejne problemy mogą wynikać z różnej liczności klastrów, różnych gęstości czy nieregularnych kształtów. ZDJĘCIA DODATEK A KLASTERYZACJA DODAJ
+
+\subsection{Algorytmy hierarchiczne}
+Celem tej grupy jest budowa hierarchicznych klastrów, które można przedstawić za pomocą dendrogramu. Metody z tej kategorii dzielą się na 2 główne grupy:
+\begin{itemize}
+	\item aglomeracyjne (bottom-up) - każdy element tworzy własny klaster, które to są łączone w wyższych poziomach hierarchii
+	\item deglomeracyjne/podziałowe (top-down) - początek stanowi jeden klaster, dzieląc się w miarę schodzenia w poziomach drzewa
+\end{itemize}
+Głównymi różnicami pomiędzy implementacjami tych metod jest metryka i sposób łączenia. Najpopularniejsza okazała się metoda aglomeracyjna, lecz posiada złożoność czasową $\mathcal{O}(n^3)$ i pamięciową $\mathcal{O}(n^2)$.
+
+\subsection{Algorytmy gęstościowe DBSCAN}
+Density-based spatial clustering of applications with noise jest najmłodszym z prezentowanych algorytmów a zarazem jednym z najczęściej cytowanej i najbardziej popularnych \cite{Est96}.
+Podstawowe pojęcia:
+\begin{itemize}
+	\item punkt rdzeniowy (ang. core point) - punkt w otoczeniu $\epsilon$ posiada co najmniej $minPts$
+	\item punkt brzegowy (ang. border point) - punkt nie jest rdzeniowy, lecz leży w otoczenie $\epsilon$ punktu rdzeniowego
+	\item punkt szumu (ang. noise point) - punkt nie jest rdzeniowy ani brzegowy
+\end{itemize}
+Abstrakt algorytmu przedstawia się następująco: \cite{Sch17}
+\begin{enumerate}
+	\item wyznacz sąsiadów dla każdego punktu w otoczeniu $\epsilon$ i oceń czy jest rdzeniowy
+	\item złącz punkty rdzeniowe w otoczeniu $\epsilon$ w klastry
+	\item dla każdego nierdzeniowego punkty oznacz go jako punkt brzegowy lub punkt szumu
+\end{enumerate}
+Złożoność czasowa algorytmu w przypadku pesymistycznym wynosi $\mathcal{O}(n^2)$ co jest akceptowalne. Do wad należy zaliczyć niedeterministyczność w klasteryzacji punktów brzegowych, ponieważ przydzielenie ich może zależeć od kolejności ułożenia danych. Dla wielowymiarowych danych metryki odległościowe mogą prowadzić do tzw. "przekleństwa wielowymiarowości" co znacząco utrudnia dobór $\epsilon$, co więcej wybór otoczenia nie jest trywialny gdy brak specjalistycznej wiedzy na temat danych. Dostosowanie minimalnej liczby sąsiadów stanowiącej punkt rdzeniowy jest trudne, gdy klastry znacząco różnią się gęstością.
+
+\subsection{Sposoby oceny klasteryzacji}
+INDEKS RANDA, CLUSTER COHESION, CLUSTER SEPARATION, DAVIES-BOULDIN, DUNN
+
+\section{Akceleracja GPU}
+\label{sec:akceleracja}
