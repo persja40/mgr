@@ -19,7 +19,7 @@ Ma on za zadanie przypisać n elementów zbioru do k klastrów, gdzie k jest zna
 	\item{wylicz nowe środki klastrów jako średnie elementów w skupieniu}
 	\item{wróć do punktu 3 jeśli nastąpiła zmiana przynależności do klastrów w punkcie 4}
 \end{enumerate}
-Niestety algorytm posiada kilka wad. Brak determinizmu wynika bezpośredniego z punktu 2, gdzie środki klastrów są losowane. Będzie to wpływać na przynależność szczególnie elementów znajdujących na brzegach klastrów. Kolejne problemy mogą wynikać z różnej liczności klastrów, różnych gęstości czy nieregularnych kształtów. ZDJĘCIA DODATEK A KLASTERYZACJA DODAJ
+Niestety algorytm posiada kilka wad. Brak determinizmu wynika bezpośredniego z punktu 2, gdzie środki klastrów są losowane. Będzie to wpływać na przynależność szczególnie elementów znajdujących na brzegach klastrów. Kolejne problemy mogą wynikać z różnej liczności klastrów, różnych gęstości czy nieregularnych kształtów. \ref{sec:k_means}
 
 \subsection{Algorytmy hierarchiczne}
 Celem tej grupy jest budowa hierarchicznych klastrów, które można przedstawić za pomocą dendrogramu. Metody z tej kategorii dzielą się na 2 główne grupy:
@@ -43,10 +43,66 @@ Abstrakt algorytmu przedstawia się następująco: \cite{Sch17}
 	\item złącz punkty rdzeniowe w otoczeniu $\epsilon$ w klastry
 	\item dla każdego nierdzeniowego punkty oznacz go jako punkt brzegowy lub punkt szumu
 \end{enumerate}
-Złożoność czasowa algorytmu w przypadku pesymistycznym wynosi $\mathcal{O}(n^2)$ co jest akceptowalne. Do wad należy zaliczyć niedeterministyczność w klasteryzacji punktów brzegowych, ponieważ przydzielenie ich może zależeć od kolejności ułożenia danych. Dla wielowymiarowych danych metryki odległościowe mogą prowadzić do tzw. "przekleństwa wielowymiarowości" co znacząco utrudnia dobór $\epsilon$, co więcej wybór otoczenia nie jest trywialny gdy brak specjalistycznej wiedzy na temat danych. Dostosowanie minimalnej liczby sąsiadów stanowiącej punkt rdzeniowy jest trudne, gdy klastry znacząco różnią się gęstością.
+Złożoność czasowa algorytmu w przypadku pesymistycznym wynosi $\mathcal{O}(n^2)$ co jest akceptowalne. Do wad należy zaliczyć niedeterministyczność w klasteryzacji punktów brzegowych, ponieważ przydzielenie ich może zależeć od kolejności ułożenia danych. Dla wielowymiarowych danych metryki odległościowe mogą prowadzić do tzw. ``przekleństwa wielowymiarowości`` co znacząco utrudnia dobór $\epsilon$, co więcej wybór otoczenia nie jest trywialny gdy brak specjalistycznej wiedzy na temat danych. Dostosowanie minimalnej liczby sąsiadów stanowiącej punkt rdzeniowy jest trudne, gdy klastry znacząco różnią się gęstością.
 
 \subsection{Sposoby oceny klasteryzacji}
 INDEKS RANDA, CLUSTER COHESION, CLUSTER SEPARATION, DAVIES-BOULDIN, DUNN
 
 \section{Akceleracja GPU}
 \label{sec:akceleracja}
+General-purpose computing on graphics processing units (GPGPU) polega na wykorzystaniu procesorów graficznych do wykonania obliczeń typowo obsługiwanych przez procesor. Rozwój tych technologi zapoczątkował przełom w czasie wykonywania obliczeń dla wielu problemów, w których obecnie wykorzystanie procesorów graficznych staję się standardem jak chociażby głębokie uczenie, obróbka chmur danych, renderowanie scen czy ostatnio śledzenie promieni.
+
+\subsection{Abstrakt programowania GPU}
+Z punktu widzenia procesora, karty graficzne są zewnętrznymi urządzeniami wejścia-wyjścia, dlatego istotną kwestią będzie przesył danych. Główną pamięcia procesora (pomijając pamięci cache) będzie RAM (ang. random access memory), natomiast w przypadku karty graficznej będzie to VRAM (ang. video random access memory). Zarówno procesor jak i akcelerator graficzny wykonują obliczenia tylko na własnej pamięci. Istnieją wysokopoziomowe interfejsy programistyczne pozwalające na dostęp do wspólnej pamięci RAM i VRAM, jak CUDA unified memory, lecz w sytuacji gdy dane nie zostaną znalezione w pamięci modułu wykonującego obliczenia mogą zostać niejawnie skopiowane. Niepotrzebne kopiowanie danych lub dostęp do innej pamięci między CPU a GPU jest stratą czasu obliczeniowego, gdzie w niektórych przypadkach dostęp do danych stanowi główną składaową czasu działania programu. Rdzenie procesora są bardziej zaawansowanymi i bardziej ogólnymi układami niż procesory graficzne. Programowanie GPU polega na przydzieleniu wspólnych danych grupie procesorów, gdzie każdy z nich wykonuje część obliczeń (ang. stream processing). Z tego powodu GPGPU nie jest użyteczne w problemach stricte senkwencyjnych oraz gdy wymagane są zaawansowane instrukcje procesora. Główną przewagą GPU nad procesorami jest kilkadziesiąt razy większa moc obliczeniowa uzyskana za zbliżoną cenę. ZNAJDŹ JAKIEŚ WYKRESY, WZROST WYDAJNOŚCI W CZASIE, CENY, SPECYFIKACJIA KART Z FP64 I FP32. Mówiąc o programowaniu GPU należy wspomnieć o 3 głównych typach jednostek są to :
+\begin{itemize}
+	\item \it{FP16} (ang. floating point 16 bit) - jendostki połowicznej precyzji, najczęściej wykorzystywane przy uczeniu maszynowym i głębokim uczeniu, gdzie precyzja liczb zmiennoprzecinkowych nie jest krytyczna. Dostępne w nowszych kartach graficznych.
+	\item \it{FP32} (ang. floating point 32 bit) - jednostki pojedynczej precyzji, najbardziej popularne.
+	\item \it{FP64} (ang. floating point 64 bit) - jednostki podwójnej precyzji, ilość ich znacząco różni się w segmencie konsumenckim i profesjonalnym (stodunek do FP32 to często odpowiednio 1/32 i 1/2). Wykorzystywane głównie w problemach inżynierskich, gdzie wymagana jest precyzja obliczeń jak metoda elementów skończonych czy modelowanie 3D.
+\end{itemize}
+Technologia CUDA od wersji 8 pozwala na wykonywanie 2 identycznych operacji niższej precyzji na jednostkach wyższej precyzji. \cite{Mix16}
+
+Schemat obliczeń na akceleratorez graficznym wygląda następująco:
+\begin{enumerate}
+	\item przesłanie danych z RAM do VRAM
+	\item wykonanie obliczeń po stronie GPU
+	\item przesłanie danych z VRAM do RAM
+\end{enumerate}
+
+Może on zostać zrealizowany przy użyciu 2 głównych środowisk OpenCL i CUDA.
+
+\subsection{OpenCL}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
