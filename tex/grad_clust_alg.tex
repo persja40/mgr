@@ -1,0 +1,98 @@
+\chapter{Algorytm gradientowej klasteryzacji}
+\label{cha:gradient_clustering_algorithm}
+
+\section{Estymatory jądrowe}
+\label{sec:estymatory}
+\subsection{Definicja}
+
+Niech zmienna losowa $X$ będzie n-wymiarową zmienną losową o gęstości prawdopodobieństwa $f$. Estymator tej zmiennej będzie wyzanoczony na podstawie próby losowej
+\begin{equation}
+x_1, x_2, ..., x_m
+\end{equation}
+będacej interpretowaną jako doświadczenie z niezależnych eksperymentów zmiennej losowej $X$.
+Jądrowy estymator gęstości $\hat{f}: \mathbf{R} \to [0, \infty)$ dany jest wzorem
+\begin{equation}
+\label{eq:estymator}
+\hat{f}(x)=\frac{1}{mh^n} \displaystyle \sum_{i=1}^{m}K(\frac{x-x_i}{h})
+\end{equation}
+$m \in \mathbf{N_+}$ jest licznością próby losowej, $h \in \mathbf{R_+}$ jest parametrem wygładzania, a funkcja $K$ jest jądrem spełniającym warunki: \\
+gęstość funkcji jest znormalizowana
+\begin{equation}
+\int_{\mathbf{R^n}} K(x)dx = 1
+\end{equation}
+funkcja jest symetryczna
+\begin{equation}
+K(x) = K(-x)
+\end{equation}
+ma w zerze maksimum globalne
+\begin{equation}
+K(0) \geq K(x), x \in \mathbf{R^n}
+\end{equation}
+
+\subsection{Wybór jądra}
+Czy pisać o tym?
+
+\subsection{Błąd estymacji}
+MSE(ang. mean square error), czyli błąd średniokwadratowy jest kwadratem błędu estymacji, co można zapisać jako
+\begin{equation}
+MSE = E({(\hat{b}-b)}^2 )
+\end{equation}
+Wzór można przekształcić w bardziej dogodną formę
+\begin{equation}
+MSE = {[E(\hat{b})-b]}^2 +V(\hat{b})
+\end{equation}
+jako sumę kwadratu obciążenia i jego wariancji. Pierwszy człon wskazuje odchylenie "centrów" estymatora z wartościami pomiarowymi, natomiat drugi pokazuje odchylenie względem "centrum". \\
+Dla estymatora gęstości prawdopodobieństwa zmiennej n-wymiarowej wzór przyjmuje postać
+\begin{equation}
+MSE_x = E({[\hat{f}(x)-f(x)]}^2), x \in \mathbf{R^n}
+\end{equation}
+lub jak poprzednio
+\begin{equation}
+MSE_x = {[E(\hat{f}(x))-f(x)]}^2 + V(\hat{f}(x)), x \in \mathbf{R^n}
+\end{equation}
+
+MISE(ang. mean integrated square error), czyli scałkowany błąd średniokwadratowy otrzymuje się poprzez scałkowanie poprzednich błędów na przestrzeni $\mathbf{R^n}$:
+\begin{equation}
+MISE = \int_{\mathbf{R^n}} E({[\hat{f}(x)-f(x)]}^2) dx
+\end{equation}
+lub
+\begin{equation}
+\label{eq:mise}
+MISE = \int_{\mathbf{R^n}} [{[E(\hat{f}(x))-f(x)]}^2 + V(\hat{f}(x))]dx
+\end{equation}
+
+Wzór \eqref{eq:mise} podobnie jak poprzednio jest sumą scałkowanego obciążenia estymatora $\hat{f}$ i jego wariancji. MISE jest cennym kryterium dla wyboru postaci jądra $K$ oraz parametru wygładzania $h$.
+
+CZY CIĄGNĄĆ DALEJ? 
+
+\subsection{Parametr wygładzania}
+
+Wartość parametru wygładzania ma kluczowe znaczenie dla jakości estymatora jądrowego. W tym podrozdziale zostaną przedstawione dwie metody wyznaczania tego parametru, przy użyciu MISE - scałkowanego błędu średniokwardatowego. Parametr wygładzania wpływa jednakowo na wszystkie wymiary, w następnym podrozdziale zostanie omówiana metoda jego indywidualizacji w zależności od wymiaru UWAGA ZASTANÓW SIĘ CO PISZESZ \ref{subsec:modyfikacje_h}.
+
+W przypadku gdy zmienna losowa X jest wielowymiarowa wartość parametru wygładzania jest wyliczana osobno dla każdego wymiaru jak dla zmiennych jednowymiarowych. 
+
+W odróżnieniu od problemu wyboru jądra dobór odpowiedniego parametru wygładzania ma kluczowe znaczenie dla jakości estymacji. Jego zbyt mała wartość skutkuje powstaniem wielu ekstemów lokalnych nie mających odzwierciedlenia w danych pomiarowych. Można to również zaobserwować ze wzoru na estymator jądrowy \ref{eq:estymator}, w którym parametr wygładzania znajduje się w mianowniku przed sumą. W takiej sytuacji wzmacnione zostaną wartości znajdujące się blisko "centrum", natomiast bardziej odległe zostaną wytłumione.
+
+W przeciwnym przypadku, gdy omawiany parametr zostanie dobrany zbyt duży doprowadzi to do nadmiernego wygładzenia estymatora. Stłumienie "centrum" i wzmocnienie "ogonów" spowoduję zanik cech danych pomiarowych, uniemożliwiając ich odróżnienie.
+
+DODAJ RYSUNKI dla h małe, duże i OK
+
+INTERPRETACJA 2 z obciążeniem i wariancją
+
+
+
+
+
+\subsection{Modyfikacja parametru wygładzania}
+\label{subsec:modyfikacje_h}
+
+\subsection{Liczność próby losowej}
+
+\subsection{Przykład}
+
+
+
+TEST CYTATÓW
+\cite{Kul10}
+\cite{Kul05}
+\cite{Kul12}
