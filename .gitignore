@@ -12,3 +12,4 @@ src/cpu
 **/*.bbl
 **/*.blg
 **/*.log
+**/*.out

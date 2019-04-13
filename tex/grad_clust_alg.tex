@@ -79,9 +79,111 @@ DODAJ RYSUNKI dla h małe, duże i OK
 
 INTERPRETACJA 2 z obciążeniem i wariancją
 
+Dwie najpopularniejsze metody wyboru parametru wygłądzania to :
+\begin{itemize}
+\item metoda podstawień(ang. plug-in method) - o mniejszym złożeniu obliczeniowym, lecz może być wykorzystany jedynie do dla danych jednowymiarowych
+\item metoda krzyżowego uwiarygodnienia(ang. corss validation method) - o większej złożoności obliczeniowej, natomiast nie jest zależna od wymiarowości danych
+\end{itemize}
+dzięki czemu mogą być wykorzystywane komplementarnie. Obie mogą być wykorzystane w przypadku jednowymiarowym uzyskując zbliżone rezultaty ze względu naminimalizację wspólnego błędu jakim jest błąd średniokwadratowy MISE. REF
 
+Zakładając jednowymiarową zmienna losową zostanie teraz przedstawiona metoda podstawień.
 
+NAPISZ
 
+CROSS VALIDATION
+
+\begin{equation}
+g(h)=\frac{1}{m^2h^n}\displaystyle\sum_{i=1}^{m} \displaystyle\sum_{j=1}^{m} \widetilde{K}(\frac{x_j - x_i}{h}) + \frac{2}{mh^n}K(0)
+\end{equation}
+
+\begin{equation}
+G(x) = K^{*2}(x) - 2K(x)
+\end{equation}
+
+\begin{equation}
+K^{*2}(x) = \int_{\mathbf{R^n}}K(y)K(x-y)dy
+\end{equation}
+
+\begin{equation}
+K^{*2}(x) = (4\pi)^{-n/2} exp(-\frac{1}{4}x^Tx)
+\end{equation}
+
+W celu minimalizacji funkcji g powszechnie używana jest metoda złotego podziału, która zostanie zaprezentowana poniżej. Na wstępie należy założyć przedział poszukiwań $[a_0, b_0]$, unimodalność funkcji na przedziale oraz wyznaczyć
+\begin{equation}
+x^l_{0} = b_0 - \frac{\sqrt{5} - 1}{2}(b_0 - a_0)
+\end{equation}
+
+\begin{equation}
+x^p_{0} = a_0 + \frac{\sqrt{5} - 1}{2}(b_0 - a_0)
+\end{equation}
+oraz 
+\begin{equation}
+f(x^l_{0})
+\end{equation}
+\begin{equation}
+f(x^r_{0})
+\end{equation}
+w każdym następnym kroku dla $k \in \mathbf{N}\{0\}$ dopóki $b-a > \epsilon$ oznacza się
+\begin{itemize}
+\item jeśli $f(x^l_{k-1}) \leq f(x^r_{k-1}) $ \newline
+	\begin{equation}
+	a_k = a_{k-1}
+	\end{equation}
+	\begin{equation}
+	b_k = x^r_{k-1}
+	\end{equation}
+	\begin{equation}
+	x^l_k = b_k - \frac{\sqrt{5} - 1}{2}(b_k - a_k)
+	\end{equation}
+	\begin{equation}
+	x^r_k = x^l_{k-1}
+	\end{equation}
+	oblicza się również wartość funkcji w punkcie 
+	\begin{equation}
+	f(x^l_k)
+	\end{equation}
+	oraz podstawia
+	\begin{equation}
+	f(x^r_k) = f(x^l_{k-1})
+	\end{equation}
+\item natomiast jeśli $f(x^l_{k-1}) > f(x^r_{k-1}) $ \newline
+	\begin{equation}
+	a_k = x^l_{k-1}
+	\end{equation}
+	\begin{equation}
+	b_k = b_{k-1}
+	\end{equation}
+	\begin{equation}
+	x^l_k = x^r_{k-1}
+	\end{equation}
+	\begin{equation}
+	x^r_k = a_k + \frac{\sqrt{5} - 1}{2}(b_k - a_k)
+	\end{equation}
+	stosuje się podstawienie 
+	\begin{equation}
+	f(x^l_k) = f(x^r_{k-1})
+	\end{equation}
+	oraz wyzanacza wartość funkcji w punkcie
+	\begin{equation}
+	f(x^r_k)
+	\end{equation}
+\end{itemize}
+SPRAWDŹ CZY NIE MA LITERÓWEK !?!?!!?
+W momencie osiągnięcia warunku zakończenia $b-a< \epsilon$ za minimum przyjmuje się
+\begin{itemize}
+\item jeśli $f(x^l_{k-1}) \leq f(x^r_{k-1}) $
+	\begin{equation}
+	h = \frac{a_k+x^r_k}{2}
+	\end{equation}
+\item lecz gdy $f(x^l_{k-1}) > f(x^r_{k-1}) $
+	\begin{equation}
+	h = \frac{x^l_k + b_k}{2}
+	\end{equation}
+\end{itemize}
+Koncepcyjnie metoda złotego podziału polega na stworzeniu zstępującego ciągu, w którym każdy kolejny przedział wynosi $\frac{\sqrt{5} - 1}{2} \approx 0.618$ poprzedniego przedziału. Błąd wyznaczenia minimum funkcji wynosi
+\begin{equation}
+\Delta = \frac{1}{2}(b_k - a_k) = \frac{1}{2} {\frac{\sqrt{5} - 1}{2}}^{k+1}(b_0-a_0)
+\end{equation}
 
 \subsection{Modyfikacja parametru wygładzania}
 \label{subsec:modyfikacje_h}
