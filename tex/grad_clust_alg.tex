@@ -182,19 +182,97 @@ W momencie osiągnięcia warunku zakończenia $b-a< \epsilon$ za minimum przyjmu
 \end{itemize}
 Koncepcyjnie metoda złotego podziału polega na stworzeniu zstępującego ciągu, w którym każdy kolejny przedział wynosi $\frac{\sqrt{5} - 1}{2} \approx 0.618$ poprzedniego przedziału. Błąd wyznaczenia minimum funkcji wynosi
 \begin{equation}
-\Delta = \frac{1}{2}(b_k - a_k) = \frac{1}{2} {\frac{\sqrt{5} - 1}{2}}^{k+1}(b_0-a_0)
+\Delta = \frac{1}{2}(b_k - a_k) = \frac{1}{2} {(\frac{\sqrt{5} - 1}{2})}^{k+1}(b_0-a_0)
 \end{equation}
 
 \subsection{Modyfikacja parametru wygładzania}
 \label{subsec:modyfikacje_h}
+Parametr wygładzania $h$ jest jednakowy dla wszystkich jąder $K$, dlatego wprowadza się jego modyfikację. Skutkuje to możliwością zmniejszenia parametru wygładzania (wyszczuplenie jądra - wzmocnienie) w miejscach o dużej gęstości próby losowej, natomiast w rejonach mniejszej gęstości próby losowej zwiększenie wartości parametru wygładzania(rozciągnięcie jądra - osłabienie).
+
+Metoda wyznaczenia parametrów modyfikujących $s_i>0, i \in [1, m]$ wygląda następująco :
+\begin{equation}
+s_i= {(\frac{\hat{f}(x_i)}{\tilde{s}})}^{-c}
+\end{equation}
+gdzie $c \geq 0$, $\tilde{s}$ jest średnią geometryczną ciągu $\hat{f}(x_1), \hat{f}(x_1), ..., \hat{f}(x_m)$ co można zapisać jako
+\begin{equation}
+\tilde{s} = exp(\frac{1}{m} \displaystyle\sum_{i=1}^{m} ln(\hat{f}(x_i)) )
+\end{equation} 
+Finalnie estymator jądrowy ze zmodyfikowanym parametrem wygładzania definiuje się jako:
+\begin{equation}
+\label{eq:est_mod}
+\hat{f}(x)=\frac{1}{mh^n} \displaystyle \sum_{i=1}^{m} \frac{1}{s_i^n} K(\frac{x-x_i}{hs_i})
+\end{equation}
 
 \subsection{Liczność próby losowej}
 
 \subsection{Przykład}
 
-
-
 TEST CYTATÓW
 \cite{Kul10}
 \cite{Kul05}
 \cite{Kul12}
+
+
+%------------------------------------------------------------------------------------------------------
+
+\section{Algorytm}
+\label{sec:algorytm}
+\subsection{Schemat}
+\label{subsec:schemat}
+Jako dane wejściowe przyjęty będzie m-elementowy zbiór n-elementowych wektorów, będzieon traktowany jak zbiór pomiarowy n-wymiarowej zmiennej losowej X o gęstości f. UZUPEŁNIĆ
+Schemat algorytmu przedstawia się następująco:
+\begin{enumerate}
+\item sformułowanie jądra estymatora $\hat{f}$
+\item wybór warunku zakończenia ( oraz liczby kroków, która z niego wynika)
+\item procedura tworzenia klastrów i przydzielania do nich elementów
+\end{enumerate}
+
+\subsection{Sformułowanie jądra estymatora}
+\label{subsec:jadro_estymatora}
+Użyte zostanie estymator jądrowy ze zmodyfikowanym parametrem wygładzania \ref{eq:est_mod} z jądrem normalnym REF!?!?!?.
+
+\subsection{Warunek zakończenia}
+\label{subsec:stop_cond}
+Zakłada się że klastry powiązane są z maksimami funkcji $\hat{
+f}$, dlatego elementy wejściowe będą przesuwane o $\Delta\hat{f}$. Będzie to wykonywane iteracyjnie jako:
+\begin{equation}
+x^0_j=x_j, j\in [1,m]
+\end{equation}
+\begin{equation}
+x^{k+1}_j=x^k_j+b\frac{\Delta\hat{f}(x^k_j)}{\hat{f}(x^k_j)}, j \in [1,m], k \in [0,k^*]
+\end{equation}
+gdzie $b > 0$ i $k^* \in \mathbf{N}\\{0}$. Rekomenduje się aby
+\begin{equation}
+b=\frac{h^2}{n+2}
+\end{equation} 
+
+Warunekiem zakończenia jest:
+\begin{equation}
+\label{eq:stop_cond}
+|D_k-D_{k-1}| \leq \alphaD_0
+\end{equation}
+gdzie $\alpha>0$ i 
+\begin{equation}
+D_0 = \displaystyle\sum_{i=1}^{m-1} \displaystyle\sum_{j=i+1}^{m} d(x_i, x_j)
+\end{equation}
+\begin{equation}
+D_{k-1} = \displaystyle\sum_{i=1}^{m-1} \displaystyle\sum_{j=i+1}^{m} d(x_i^{k-1}, x_j^{k-1})
+\end{equation}
+\begin{equation}
+D_{k} = \displaystyle\sum_{i=1}^{m-1} \displaystyle\sum_{j=i+1}^{m} d(x_i^{k}, x_j^{k})
+\end{equation}
+gdzie $d$ jest euklidesową metryką w $\mathbf{R}^n$. $D$ oznacza sumę odległości pomiędzy każdą parą elementów. Najczęściej przyjmuje się że
+\begin{equation}
+a= 0.0001
+\end{equation}
+W momencie spełnienia warunku \ref{eq:stop_cond}, przyjmuje się że obecna wartość $k$ jest ostatnią.
+\begin{equation}
+k^*=k
+\end{equation}
+
+\subsection{Procedura tworzenia klastrów i przydzielania do nich elementów}
+\label{subsec:tworzenie_klastrow}
+Z poprzedniego podrozdziału dany jest zbiór
+\begin{equation}
+x^{k^*}_1, x^{k^*}_2, ..., x^{k^*}_m 
+\end{equation}
