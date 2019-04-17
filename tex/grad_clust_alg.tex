@@ -5,7 +5,7 @@
 \label{sec:estymatory}
 \subsection{Definicja}
 
-Niech zmienna losowa $X$ będzie n-wymiarową zmienną losową o gęstości prawdopodobieństwa $f$. Estymator tej zmiennej będzie wyzanoczony na podstawie próby losowej
+Niech zmienna losowa $X$ będzie n-wymiarową zmienną losową o gęstości prawdopodobieństwa $f$. Estymator tej zmiennej będzie wyznaczony na podstawie próby losowej
 \begin{equation}
 x_1, x_2, ..., x_m
 \end{equation}
@@ -41,7 +41,7 @@ Wzór można przekształcić w bardziej dogodną formę
 \begin{equation}
 MSE = {[E(\hat{b})-b]}^2 +V(\hat{b})
 \end{equation}
-jako sumę kwadratu obciążenia i jego wariancji. Pierwszy człon wskazuje odchylenie "centrów" estymatora z wartościami pomiarowymi, natomiat drugi pokazuje odchylenie względem "centrum". \\
+jako sumę kwadratu obciążenia i jego wariancji. Pierwszy człon wskazuje odchylenie "centrów" estymatora z wartościami pomiarowymi, natomiast drugi pokazuje odchylenie względem "centrum". \\
 Dla estymatora gęstości prawdopodobieństwa zmiennej n-wymiarowej wzór przyjmuje postać
 \begin{equation}
 MSE_x = E({[\hat{f}(x)-f(x)]}^2), x \in \mathbf{R^n}
@@ -67,26 +67,26 @@ CZY CIĄGNĄĆ DALEJ?
 
 \subsection{Parametr wygładzania}
 
-Wartość parametru wygładzania ma kluczowe znaczenie dla jakości estymatora jądrowego. W tym podrozdziale zostaną przedstawione dwie metody wyznaczania tego parametru, przy użyciu MISE - scałkowanego błędu średniokwardatowego. Parametr wygładzania wpływa jednakowo na wszystkie wymiary, w następnym podrozdziale zostanie omówiana metoda jego indywidualizacji w zależności od wymiaru UWAGA ZASTANÓW SIĘ CO PISZESZ \ref{subsec:modyfikacje_h}.
+Wartość parametru wygładzania ma kluczowe znaczenie dla jakości estymatora jądrowego. W tym podrozdziale zostaną przedstawione dwie metody wyznaczania tego parametru, przy użyciu MISE - scałkowanego błędu średniokwardatowego. Parametr wygładzania wpływa jednakowo na wszystkie wymiary, w następnym podrozdziale zostanie omówiona metoda jego indywidualizacji w zależności od wymiaru UWAGA ZASTANÓW SIĘ CO PISZESZ \ref{subsec:modyfikacje_h}.
 
 W przypadku gdy zmienna losowa X jest wielowymiarowa wartość parametru wygładzania jest wyliczana osobno dla każdego wymiaru jak dla zmiennych jednowymiarowych. 
 
-W odróżnieniu od problemu wyboru jądra dobór odpowiedniego parametru wygładzania ma kluczowe znaczenie dla jakości estymacji. Jego zbyt mała wartość skutkuje powstaniem wielu ekstemów lokalnych nie mających odzwierciedlenia w danych pomiarowych. Można to również zaobserwować ze wzoru na estymator jądrowy \ref{eq:estymator}, w którym parametr wygładzania znajduje się w mianowniku przed sumą. W takiej sytuacji wzmacnione zostaną wartości znajdujące się blisko "centrum", natomiast bardziej odległe zostaną wytłumione.
+W odróżnieniu od problemu wyboru jądra dobór odpowiedniego parametru wygładzania ma kluczowe znaczenie dla jakości estymacji. Jego zbyt mała wartość skutkuje powstaniem wielu ekstremów lokalnych niemających odzwierciedlenia w danych pomiarowych. Można to również zaobserwować ze wzoru na estymator jądrowy \ref{eq:estymator}, w którym parametr wygładzania znajduje się w mianowniku przed sumą. W takiej sytuacji wzmocnione zostaną wartości znajdujące się blisko "centrum", natomiast bardziej odległe zostaną wytłumione.
 
-W przeciwnym przypadku, gdy omawiany parametr zostanie dobrany zbyt duży doprowadzi to do nadmiernego wygładzenia estymatora. Stłumienie "centrum" i wzmocnienie "ogonów" spowoduję zanik cech danych pomiarowych, uniemożliwiając ich odróżnienie.
+W przeciwnym przypadku, gdy omawiany parametr zostanie dobrany zbyt duży, doprowadzi to do nadmiernego wygładzenia estymatora. Stłumienie "centrum" i wzmocnienie "ogonów" spowoduję zanik cech danych pomiarowych, uniemożliwiając ich odróżnienie.
 
 DODAJ RYSUNKI dla h małe, duże i OK
 
 INTERPRETACJA 2 z obciążeniem i wariancją
 
-Dwie najpopularniejsze metody wyboru parametru wygłądzania to :
+Dwie najpopularniejsze metody wyboru parametru wygładzania to :
 \begin{itemize}
 \item metoda podstawień(ang. plug-in method) - o mniejszym złożeniu obliczeniowym, lecz może być wykorzystany jedynie do dla danych jednowymiarowych
 \item metoda krzyżowego uwiarygodnienia(ang. corss validation method) - o większej złożoności obliczeniowej, natomiast nie jest zależna od wymiarowości danych
 \end{itemize}
-dzięki czemu mogą być wykorzystywane komplementarnie. Obie mogą być wykorzystane w przypadku jednowymiarowym uzyskując zbliżone rezultaty ze względu naminimalizację wspólnego błędu jakim jest błąd średniokwadratowy MISE. REF
+dzięki czemu mogą być wykorzystywane komplementarnie. Obie mogą być wykorzystane w przypadku jednowymiarowym uzyskując zbliżone rezultaty ze względu na minimalizację wspólnego błędu, jakim jest błąd średniokwadratowy MISE. REF
 
-Zakładając jednowymiarową zmienna losową zostanie teraz przedstawiona metoda podstawień.
+Zakładając jednowymiarową zmienna losową, zostanie teraz przedstawiona metoda podstawień.
 
 NAPISZ
 
@@ -187,7 +187,7 @@ Koncepcyjnie metoda złotego podziału polega na stworzeniu zstępującego ciąg
 
 \subsection{Modyfikacja parametru wygładzania}
 \label{subsec:modyfikacje_h}
-Parametr wygładzania $h$ jest jednakowy dla wszystkich jąder $K$, dlatego wprowadza się jego modyfikację. Skutkuje to możliwością zmniejszenia parametru wygładzania (wyszczuplenie jądra - wzmocnienie) w miejscach o dużej gęstości próby losowej, natomiast w rejonach mniejszej gęstości próby losowej zwiększenie wartości parametru wygładzania(rozciągnięcie jądra - osłabienie).
+Parametr wygładzania $h$ jest jednakowy dla wszystkich jąder $K$, dlatego wprowadza się jego modyfikację. Skutkuje to możliwością zmniejszenia parametru wygładzania (wyszczuplenie jądra - wzmocnienie) w miejscach o dużej gęstości próby losowej, natomiast w rejonach mniejszej gęstości próby losowej zwiększenie wartości parametru wygładzania (rozciągnięcie jądra - osłabienie).
 
 Metoda wyznaczenia parametrów modyfikujących $s_i>0, i \in [1, m]$ wygląda następująco :
 \begin{equation}
@@ -219,7 +219,7 @@ TEST CYTATÓW
 \label{sec:algorytm}
 \subsection{Schemat}
 \label{subsec:schemat}
-Jako dane wejściowe przyjęty będzie m-elementowy zbiór n-elementowych wektorów, będzieon traktowany jak zbiór pomiarowy n-wymiarowej zmiennej losowej X o gęstości f. UZUPEŁNIĆ
+Jako dane wejściowe przyjęty będzie m-elementowy zbiór n-elementowych wektorów, będzie on traktowany jak zbiór pomiarowy n-wymiarowej zmiennej losowej X o gęstości f. UZUPEŁNIĆ
 Schemat algorytmu przedstawia się następująco:
 \begin{enumerate}
 \item sformułowanie jądra estymatora $\hat{f}$
@@ -246,7 +246,7 @@ gdzie $b > 0$ i $k^* \in \mathbf{N} \backslash \{0\}$. Rekomenduje się aby
 b=\frac{h^2}{n+2}
 \end{equation} 
 
-Warunekiem zakończenia jest:
+Warunkiem zakończenia jest:
 \begin{equation} \label{eq:stop_cond}
 |D_k-D_{k-1}| \leq \alpha D_0
 \end{equation}
@@ -264,7 +264,7 @@ gdzie $d$ jest euklidesową metryką w $\mathbf{R}^n$. $D$ oznacza sumę odległ
 \begin{equation}
 a= 0.0001
 \end{equation}
-W momencie spełnienia warunku \ref{eq:stop_cond}, przyjmuje się że obecna wartość $k$ jest ostatnią.
+W momencie spełnienia warunku \ref{eq:stop_cond} przyjmuje się, że obecna wartość $k$ jest ostatnią.
 \begin{equation}
 k^*=k
 \end{equation}
@@ -300,11 +300,11 @@ Wartość $x_d$ zostanie wyznaczona jako najmniejszy element zbioru \ref{eq:set_
 co będzie iterpretowane jako połowa odległości pomiędzy centrami klastrów.
 
 
-Zbiór \ref{eq:set_init} zostanie użyty do klasteruzacji w następujący sposób:
+Zbiór \ref{eq:set_init} zostanie użyty do klasteryzacji w następujący sposób:
 \begin{enumerate}
 \item weź element zbioru i utwórz z niego jednoelementowy klaster
 \item znajdź element zbioru bliższy niż $x_d$ i dodaj go do klastru, powtarzaj dopóki istnieją
 \item klaster uznaje się za wypełniony i jego elementy zostają usunięte ze zbioru, jeśli istnieją elementy w zbiorze należy powrócić do punktu 1, w przeciwnym razie algorytm się zakończył
 \end{enumerate}
 
-Omówienie czy posczególne fragmenty algorytmu można zrównoleglić i w jaki sposób znajdują się w kolejnym rozdziale.
+Omówienie czy poszczególne fragmenty algorytmu można zrównoleglić i w jaki sposób znajdują się w kolejnym rozdziale.
