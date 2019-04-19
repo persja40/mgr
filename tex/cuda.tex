@@ -4,9 +4,43 @@
 \section{Opis środowiska}
 \label{sec:opis_cuda}
 
-Przykładowy kernel
+Ten podrozdział będzie poświęcony wprowadzeniu do programowania w środowisku CUDA, stworzy podwaliny pod zrozumienie implementacji algorytmu gradientowej klasteryzacji w dalszej części tego rozdziału. Jak zostało wcześniej wspomniane używanie karty graficznej do obliczeń jest traktowaniem jej jako urządzenia wejścia/wyjścia. Z tego powodu w zastosowaniach aplikacyjnych należy przechwytywać i obsługiwać zaistaniałe błędy takie jak np. nieudana alokacja pamięci. W tej pracy kod aplikacji nie będzie tego zawierał, ze względu czytelność i uniknięcia nadmiarowości kodu. Zostanie również przyjęta angielska konwencja nazewnictwa ze względu na brak polskich odpowiedników:
+\begin{itemize}
+\item host - procesor
+\item device - karta graficzna
+\end{itemize}
+
+W celu wykonania obliczeń na karcie graficznej musi zostać stworzona specjalna funkcja, zwana dalej kernelem. Będzie ona oznaczona jedną z trzech flag:
+\begin{itemize}
+\item host POPRAW - funkcja wywoływana z host i wykonywana na host
+%\item __device__ - funkcja wywoływana z device i wykonywana na device
+%\item __global__ funkcja wywoływana z host i wykonywana na device 
+\end{itemize}
+, co widać poniżej w linijce 2. Do uruchomienia każdego kernela należy przydzielić określoną liczbę bloków, z których każdy będzie zawierał identyczną liczbę wątków. Linijka 12 pokazuje przykładowe wywołanie kernela z jednym blokiem posiadającym $N$ wątków. Poniższy przykład zsumuje 128 pierwszych elementów tablic A, B i zapiszę wynik do tablicy C;
 \lstinputlisting[language=C++, firstline=1, lastline=13]{cuda.cpp}
 
+Wewnątrz kernela możliwe jest sprawdzenie współrzędnych zarówno wątku jak i bloku.
+\lstinputlisting[language=C++, firstline=17, lastline=23]{cuda.cpp}
+
+Przydatne bywa także informacja o wymiarach siatki(zbiór bloków) oraz bloku(zbiór wątków).
+\lstinputlisting[language=C++, firstline=27, lastline=32]{cuda.cpp}
+
+Procesor i karta graficzna używają różnych przestrzeni adresowych, istnieje możliwość połączenia ich w jedną logiczną przsetrzeń zwaną texttt{unified memory}. Jest prostsza w obsłudze lecz pogarsza wydajność, gdy nie wychodzi predykcja co skutkuje kopiowaniem danych w czasie wykonywania kernela. Przykład poniżej przechodzi obsługę pamięci po stronie GPU.
+\begin{itemize}
+\item w pierwszej kolejności musi zostać stworzony odrębny wskaźnik wraz z własną przydzieloną pamięcią - linijki 8 i 10.
+\item w dalszej kolejności dane muszą zostać skopiowane, aby były dostępne w przetrzeni adresowej GPU - linijka 12
+\item dopiero teraz kernel jest w stanie operować na danych - linijka 16
+\item bariera blokuje dalsze wykonanie programu w oczekiwaniu na zakończenie jądra - linijka 19. Brak bariery doprowadziłby do sytuacji, gdy kernel wciąż pracowałby na danych, a jednocześnie program mógłby je kopiować lub przekazać innemu kernelowi do obliczeń.
+\item dane muszą spwrotem zostać kopiowane z GPU do CPU - linijka 22
+\item dobra praktyka mówi o zwalnianiu pamięci, gdy ta nie jest już użyteczna - linijka 24
+\end{itemize}
+\lstinputlisting[language=C++, firstline=35, lastline=59]{cuda.cpp}
+
+Istnieje pamięć o czasie dostępu około 100 krotnie mniejszym czasie dostępu niż pamieć wspólna akcelerator \cite{Sha13}. Shared memory jest pamięcią o ograniczonej pojemności dostępna jedynie w tym samym bloku. Przykład odwrócenia 64 elementowej tablicy z wykorzystaniem statycznej shared memory znajduje się poniżej. Ważnym elementem jest bariera dla wątków w linijce 7 oczekująca na przekopiowanie tablicy.
+\lstinputlisting[language=C++, firstline=63, lastline=71]{cuda.cpp}
+
+Nowsze karty graficzne wspierające technologię CUDA dają możliwość wykonywania operacji atomowych na części prostych typów danych REF ATOMIC OPERAND, czego przykładem jest sumowanie elementów tablicy - linjka 4. Kluczowym elementem przy doborze liczby bloków i wątków kernela jest dobór liczby wątków jako wielokrotność 32(w obecnych generacjach GPU, w przyszłych może ulec powiększeniu). Jest to spowodowane fizycznym zgrupowaniem rdzeni w bloki po 32, które muszą wykonywać tę samą instrukcję. 
+\lstinputlisting[language=C++, firstline=75, lastline=88]{cuda.cpp}
 
 \section{Implementacja}
 \label{sec:implementacja}

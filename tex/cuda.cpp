@@ -54,6 +54,8 @@ int main()
 
     //kopiowanie danych z VRAM do RAM
     cudaMemcpy(v.data(), d_data, v.size() * sizeof(float), cudaMemcpyDeviceToHost);
+    //zwolnienie pamięci GPU
+    cudaFree(d_data);
 }
 
 //------------------------------------------
@@ -64,7 +66,7 @@ __global__ void reverse(float *A, int n)
     int i = threadIdx.x;
     int i_r = n - i - 1;
     tmp[i] = A[i];
-    __syncthreads();
+    __syncthreads(); //bariera dla wątków w bloku
     A[i] = tmp[i_r];
 }
 
@@ -78,7 +80,8 @@ __global__ void sum(float *A, float *result)
 
 int main()
 {
-    ... sum<<<1, 128>>>(d_a, d_result); //OK
+    ...
+    sum<<<1, 128>>>(d_a, d_result); //OK
     sum<<<64, 2>>>(d_a, d_result);      //marnowanie zasobów
     sum<<<4, 32>>>(d_a, d_result);      //OK
     ...
