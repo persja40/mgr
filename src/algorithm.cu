@@ -31,22 +31,20 @@ n means 2nd dimension
 data = 2d (n==1 -> 1d)
 nth <0, n-1> chooses parameter
 */
-__global__ void g_h_sum(float *data, int m, int n, float h, float *answer)
+__global__ void g_h_sum(float *data, int m, int n, int kth, float h, float *answer)
 {
-    extern __shared__ float rr[];
-    if (threadIdx.x < n)
-        rr[threadIdx.x] = 0;
+    __shared__ float rr;
+    if (threadIdx.x == 0)
+        rr = 0;
     __syncthreads();
 
-    for(int k=0; k<n; k++){
-        float part = 0;
-        for(int i= blockIdx.x; i<m; i+=gridDim.x)
-            for(int j=threadIdx.x; j<m; j+= blockDim.x){
-                float xTx = powf((data[j * n + k] - data[i * n + k]) / h, 2.0);
-                part += expf(-0.25 * xTx) / powf(4 * M_PI, n * 0.5) - 2 * expf(-0.5 * xTx) / (2 * powf(M_PI, n * 0.5));
-            }
-        atomicAdd(rr+k, part);
-    }
+    float part = 0;
+    for(int i= blockIdx.x; i<m; i+=gridDim.x)
+        for(int j=threadIdx.x; j<m; j+= blockDim.x){
+            float xTx = powf((data[j * n + kth] - data[i * n + kth]) / h, 2.0);
+            part += expf(-0.25 * xTx) / powf(4 * M_PI, n * 0.5) - 2 * expf(-0.5 * xTx) / (2 * powf(M_PI, n * 0.5));
+        }
+    atomicAdd(&rr, part);
 
     // float part = 0.0;
     // for (int j = threadIdx.x; j < m; j += blockDim.x )
@@ -59,8 +57,8 @@ __global__ void g_h_sum(float *data, int m, int n, float h, float *answer)
     // __syncthreads();
     
     __syncthreads();
-    if (threadIdx.x < n)
-        atomicAdd(answer + threadIdx.x, rr[threadIdx.x]);
+    if (threadIdx.x == 0)
+        atomicAdd(answer, rr);
 }
 
 __global__ void g_h(float *data, int m, int n, float h){
@@ -377,53 +375,53 @@ __global__ void smallestXd(float *d, float *si, int d_size, float x_d, float h, 
 WRAPERS
 ********************************************************/
 
-// std::vector<float> goldenRatio(float *data, int m, int n, float a_u = 0.000001, float b_u = 1'000'000, float eps = 0.0001)
-// {
-//     float *d_answer;
-//     cudaMalloc(&d_answer, sizeof(float));
-//     cudaMemset(d_answer, 0, sizeof(float));
-//     std::vector<float> result{};
-//     for (int nth = 0; nth < n; nth++)
-//     {
-//         // cout << "NTH: " << nth << endl;
-//         float a = a_u;
-//         float b = b_u;
-//         float l, l1, l2, f1, f2; //b-a  left    right   l_val   r_val
-//         const float r = 0.618034;
-//         while (fabs(b - a) > eps)
-//         {
-//             l = b - a;
-//             l1 = a + pow(r, 2) * l;
-//             l2 = a + r * l;
+std::vector<float> goldenRatio(float *data, int m, int n, float a_u = 0.00001, float b_u = 10'000, float eps = 0.001)
+{
+    float *d_answer;
+    cudaMalloc(&d_answer, sizeof(float));
+    cudaMemset(d_answer, 0, sizeof(float));
+    std::vector<float> result{};
+    for (int nth = 0; nth < n; nth++)
+    {
+        // cout << "NTH: " << nth << endl;
+        float a = a_u;
+        float b = b_u;
+        float l, l1, l2, f1, f2; //b-a  left    right   l_val   r_val
+        const float r = 0.618034;
+        while (fabs(b - a) > eps)
+        {
+            l = b - a;
+            l1 = a + pow(r, 2) * l;
+            l2 = a + r * l;
 
-//             //f1
-//             g_h_sum<<<m, WARP>>>(data, m, n, nth, l1, d_answer);
-//             cudaDeviceSynchronize();
-//             cudaMemcpy(&f1, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-//             f1 = f1 / (pow(m, 2) * l1) + 2 / (m * l1);
-//             cudaMemset(d_answer, 0, sizeof(float));
+            //f1
+            g_h_sum<<<128, 4*WARP>>>(data, m, n, nth, l1, d_answer);
+            cudaDeviceSynchronize();
+            cudaMemcpy(&f1, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+            f1 = f1 / (pow(m, 2) * pow(l1,n)) + 2 / (m * pow(l1,n)) /(2*powf(M_PI,n*0.5));
+            cudaMemset(d_answer, 0, sizeof(float));
 
-//             //f2
-//             g_h_sum<<<m, WARP>>>(data, m, n, nth, l2, d_answer);
-//             cudaDeviceSynchronize();
-//             cudaMemcpy(&f2, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-//             f2 = f2 / (pow(m, 2) * l2) + 2 / (m * l2);
-//             cudaMemset(d_answer, 0, sizeof(float));
+            //f2
+            g_h_sum<<<128, 4*WARP>>>(data, m, n, nth, l2, d_answer);
+            cudaDeviceSynchronize();
+            cudaMemcpy(&f2, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+            f2 = f2 / (pow(m, 2) * pow(l2,n)) + 2 / (m * pow(l2,n))/(2*powf(M_PI,n*0.5));
+            cudaMemset(d_answer, 0, sizeof(float));
 
-//             if (f2 > f1)
-//                 b = l2;
-//             else
-//                 a = l1;
+            if (f2 > f1)
+                b = l2;
+            else
+                a = l1;
 
-//             // std::cout << "a: " << a << "\tb: " << b << std::endl;
-//             // std::cout << "mod: " << fabs(b - a) << "\t" << eps << std::endl;
-//         }
-//         result.push_back(l1);
-//         // cout << endl;
-//     }
-//     cudaFree(d_answer);
-//     return result;
-// }
+            // std::cout << "a: " << a << "\tb: " << b << std::endl;
+            // std::cout << "mod: " << fabs(b - a) << "\t" << eps << std::endl;
+        }
+        result.push_back((l1+l2)*0.5);
+        // cout << endl;
+    }
+    cudaFree(d_answer);
+    return result;
+}
 
 void stopCondition(float *data, int m, int n, std::vector<float> &h, float alpha = 0.001)
 {
@@ -617,20 +615,11 @@ int main(int argc, char **argv)
     float *d_t;
     cudaMalloc(&d_t, m * n * sizeof(float));
     cudaMemcpy(d_t, t.data(), m * n * sizeof(float), cudaMemcpyHostToDevice);
-
-    g_h_sum<<<128,128, n * sizeof(float)>>>(d_t, m, n, 1.0, d_answer);
-    cudaDeviceSynchronize();
-    g_h<<<128,128>>>(d_answer, m, n, 1.0);
-    cudaDeviceSynchronize();
-    std::vector<float> h(n,0);
-    cudaMemcpy(h.data(), d_answer, n * sizeof(float), cudaMemcpyDeviceToHost);
-    for(const auto& e: h)
-        std::cout<<e<<std::endl;
-    // cout << "starting GOLDEN" << endl;
-    // auto h = goldenRatio(d_t, m, n);
-    // cout << "finished GOLDEN" << endl;
-    // for (const auto &e : h)
-    //     cout <<"h\t"<< e << endl;
+    cout << "starting GOLDEN" << endl;
+    auto h = goldenRatio(d_t, m, n);
+    cout << "finished GOLDEN" << endl;
+    for (const auto &e : h)
+        cout <<"h\t"<< e << endl;
 
     // cout<<"starting STOPCondition" << endl;
     // stopCondition(d_t, m, n, h);
