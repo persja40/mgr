@@ -13,3 +13,4 @@ src/cpu
 **/*.blg
 **/*.log
 **/*.out
+.vscode/*
