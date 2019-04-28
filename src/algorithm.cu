@@ -46,17 +46,8 @@ __global__ void g_h_sum(float *data, int m, int n, int kth, float h, float *answ
         }
     atomicAdd(&rr, part);
 
-    // float part = 0.0;
-    // for (int j = threadIdx.x; j < m; j += blockDim.x )
-    // {
-    //     float xTx = powf((data[blockIdx.x * n + nth] - data[j * n + nth]) / h, 2.0);
-    //     part += expf(-0.25 * xTx) / pow(4 * M_PI, 0.5) - 2 * expf(-0.5 * xTx) / (2 * pow(M_PI, 0.5));
-    // }
-
-    // atomicAdd(&rr, part);
-    // __syncthreads();
-    
     __syncthreads();
+
     if (threadIdx.x == 0)
         atomicAdd(answer, rr);
 }
@@ -65,6 +56,29 @@ __global__ void g_h(float *data, int m, int n, float h){
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     if(idx < n )
         data[idx] = data[idx]/(powf(m,2)*powf(h,n)) + 2/(m*powf(h,n))/(2*powf(M_PI,n*0.5)); 
+}
+
+__global__ void distance(float *data, int m, int n, float *answer)
+{
+    __shared__ float rr;
+    if (threadIdx.x == 0)
+        rr = 0;
+    __syncthreads();
+
+    float part = 0;
+    for(int i= blockIdx.x; i<m-1; i+=gridDim.x)
+        for(int j= i + threadIdx.x; j<m; j+= blockDim.x){
+            float d = 0;
+            for(int k=0; k<n; k++)
+                d+= powf( data[i*n + k] - data[j*n + k] ,2);
+            part += sqrt(d);
+        }
+    atomicAdd(&rr, part);
+    
+    __syncthreads();
+
+    if (threadIdx.x == 0)
+        atomicAdd(answer, rr);
 }
 
 __device__ void estimator(float *data, int m, int n, float *h, float *x, float *answer)
@@ -150,47 +164,6 @@ __global__ void alg_step(float *data, float *newData, int m, int n, float *h, fl
         cudaFree(est_f);
         cudaFree(b);
     }
-}
-
-__global__ void distance(float *data, int m, int n, float *answer)
-{
-    int dataSize = m - blockIdx.x - 1; //remove itself
-    int div = dataSize / WARP;
-    int rest = dataSize % WARP;
-    int part_size;
-    __shared__ float rr;
-    if (threadIdx.x == 0)
-        rr = 0.0;
-    __syncthreads();
-    int start, stop;
-    float part = 0.0;
-    if (threadIdx.x < rest)
-    {
-        start = threadIdx.x * (div + 1);
-        stop = start + (div + 1);
-        part_size = div + 1;
-    }
-    else
-    {
-        start = rest * (div + 1) + abs(static_cast<int>(threadIdx.x - rest)) * div;
-        stop = start + div;
-        part_size = div;
-    }
-    if (stop < dataSize)
-    {
-        int offset = (blockIdx.x + 1) * n;
-        for (int i = 0; i < part_size; i++)
-        {
-            float sum_sq = 0.0;
-            for (int j = 0; j < n; j++)
-                sum_sq += powf(data[blockIdx.x * n + j] - data[offset + (start + i) * n + j], 2.0);
-            part += sqrt(sum_sq);
-        }
-    }
-    atomicAdd(&rr, part);
-    __syncthreads();
-    if (threadIdx.x == 0)
-        atomicAdd(answer, rr);
 }
 
 /*
@@ -434,7 +407,7 @@ void stopCondition(float *data, int m, int n, std::vector<float> &h, float alpha
     cudaGetDeviceProperties(&deviceProp, dev);
 
     dk_m1 = std::numeric_limits<float>::max();
-    distance<<<m, WARP>>>(data, m, n, d_answer);
+    distance<<<128, 4*WARP>>>(data, m, n, d_answer);
     cudaDeviceSynchronize();
     cudaMemcpy(&d0, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemset(d_answer, 0, sizeof(float));
@@ -448,6 +421,7 @@ void stopCondition(float *data, int m, int n, std::vector<float> &h, float alpha
     cudaMalloc(&data_tmp, m * n * sizeof(float));
 
     int ctr = 0;
+    cout <<"STOP " <<d0 << "\t" << dk_m1 << "\t" << dk << "\t" << fabs(dk_m1 - dk) << endl;
     while (std::fabs(dk - dk_m1) > d0 * alpha)
     {
         alg_step<<<m, WARP>>>(data, data_tmp, m, n, d_h);
@@ -458,7 +432,7 @@ void stopCondition(float *data, int m, int n, std::vector<float> &h, float alpha
 
         dk_m1 = dk;
         cudaMemset(d_answer, 0, sizeof(float));
-        distance<<<m, WARP>>>(data, m, n, d_answer);
+        distance<<<128, 4*WARP>>>(data, m, n, d_answer);
         cudaDeviceSynchronize();
         cudaMemcpy(&dk, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
     }
@@ -620,6 +594,8 @@ int main(int argc, char **argv)
     cout << "finished GOLDEN" << endl;
     for (const auto &e : h)
         cout <<"h\t"<< e << endl;
+
+    stopCondition(d_t, m, n, h);
 
     // cout<<"starting STOPCondition" << endl;
     // stopCondition(d_t, m, n, h);
