@@ -42,7 +42,7 @@ __global__ void g_h_sum(float *data, int m, int n, int kth, float h, float *answ
     for(int i= blockIdx.x; i<m; i+=gridDim.x)
         for(int j=threadIdx.x; j<m; j+= blockDim.x){
             float xTx = powf((data[j * n + kth] - data[i * n + kth]) / h, 2.0);
-            part += expf(-0.25 * xTx) / powf(4 * M_PI, n * 0.5) - 2 * expf(-0.5 * xTx) / (2 * powf(M_PI, n * 0.5));
+            part += expf(-0.25 * xTx) / powf(4 * M_PI, 1 * 0.5) - 2 * expf(-0.5 * xTx) / powf(2 * M_PI, 1 * 0.5);
         }
     atomicAdd(&rr, part);
 
@@ -55,7 +55,7 @@ __global__ void g_h_sum(float *data, int m, int n, int kth, float h, float *answ
 __global__ void g_h(float *data, int m, int n, float h){
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     if(idx < n )
-        data[idx] = data[idx]/(powf(m,2)*powf(h,n)) + 2/(m*powf(h,n))/(2*powf(M_PI,n*0.5)); 
+        data[idx] = data[idx]/(powf(m,2)*powf(h,1)) + 2/(m*powf(h,1))/powf(2 * M_PI,1*0.5); 
 }
 
 __global__ void distance(float *data, int m, int n, float *answer)
@@ -126,7 +126,7 @@ __device__ void estimator(float *data, int m, int n, float *h, float *x, float *
     }
 }
 
-__global__ void alg_step(float *data, float *newData, int m, int n, float *h, float dx = 0.01)
+__global__ void alg_step(float *data, float *newData, int m, int n, float *h, float dx = 0.001)
 {
     __shared__ float *b;
     __shared__ float *est_fdx;
@@ -348,7 +348,7 @@ __global__ void smallestXd(float *d, float *si, int d_size, float x_d, float h, 
 WRAPERS
 ********************************************************/
 
-std::vector<float> goldenRatio(float *data, int m, int n, float a_u = 0.00001, float b_u = 10'000, float eps = 0.001)
+std::vector<float> goldenRatio(float *data, int m, int n, float a_u = 0.0001, float b_u = 10'000, float eps = 0.001)
 {
     float *d_answer;
     cudaMalloc(&d_answer, sizeof(float));
@@ -371,15 +371,17 @@ std::vector<float> goldenRatio(float *data, int m, int n, float a_u = 0.00001, f
             g_h_sum<<<128, 4*WARP>>>(data, m, n, nth, l1, d_answer);
             cudaDeviceSynchronize();
             cudaMemcpy(&f1, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-            f1 = f1 / (pow(m, 2) * pow(l1,n)) + 2 / (m * pow(l1,n)) /(2*powf(M_PI,n*0.5));
+            f1 = f1 / (pow(m, 2) * pow(l1,1)) + 2 / (m * pow(l1,1)) /powf(2 * M_PI,1*0.5);
             cudaMemset(d_answer, 0, sizeof(float));
 
             //f2
             g_h_sum<<<128, 4*WARP>>>(data, m, n, nth, l2, d_answer);
             cudaDeviceSynchronize();
             cudaMemcpy(&f2, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-            f2 = f2 / (pow(m, 2) * pow(l2,n)) + 2 / (m * pow(l2,n))/(2*powf(M_PI,n*0.5));
+            f2 = f2 / (pow(m, 2) * pow(l2,1)) + 2 / (m * pow(l2,1))/powf(2 * M_PI,1*0.5);
             cudaMemset(d_answer, 0, sizeof(float));
+
+            cout<<"l1 "<<l1<<"\tf1 "<<f1<<"\tl2 "<<l2<<"\tf2 "<<f2<<" "<<nth<<endl;
 
             if (f2 > f1)
                 b = l2;
@@ -424,7 +426,7 @@ void stopCondition(float *data, int m, int n, std::vector<float> &h, float alpha
     cout <<"STOP " <<d0 << "\t" << dk_m1 << "\t" << dk << "\t" << fabs(dk_m1 - dk) << endl;
     while (std::fabs(dk - dk_m1) > d0 * alpha)
     {
-        alg_step<<<m, WARP>>>(data, data_tmp, m, n, d_h);
+        alg_step<<<128, 4*WARP>>>(data, data_tmp, m, n, d_h);
         cudaDeviceSynchronize();
         std::swap(data, data_tmp);
 
@@ -578,9 +580,9 @@ int main(int argc, char **argv)
 
     auto &t = std::get<0>(tpl);
 
-    // const float *ptr = t.data();
-    // for(int i=0; i<m; i++)
-    //     std::cout<<ptr[i*n]<<" "<<ptr[i*n+1]<<" "<<ptr[i*n+2]<<" "<<ptr[i*n+3]<<std::endl;
+    const float *ptr = t.data();
+    for(int i=0; i<m; i++)
+        std::cout<<ptr[i*n]<<" "<<ptr[i*n+1]<<std::endl;
 
     float *d_answer;
     cudaMalloc(&d_answer, n * sizeof(float));
