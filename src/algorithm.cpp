@@ -47,51 +47,7 @@ float g_h(vector<vector<float>> &data, float h, int kth)
     return answer / (pow(m, 2) * pow(h, n)) + 2 / (m * pow(h, n)) / (pow(2 * M_PI, n * 0.5));
 }
 
-// float estimator(float x, vector<vector<float>> &data, vector<float> &h, float *s = nullptr)
-// {
-//     float answer = 0;
-//     int m = data.size();
-//     int n = data[0].size();
-//     unsigned nr_threads = thread::hardware_concurrency();
-//     auto par_fun = [&](int nr) -> float {
-//         float r = 0;
-//         for (int i = nr; i < data.size(); i += nr_threads)
-//         {
-//             float k = 1;
-//             for (int j = 0; i < n; i++)
-//                 k *= kernel((x - data[i][j]) / h[j], n) / pow(h[j], n);
-//             r += k;
-//         }
-//         return r;
-//     };
-
-//     auto par_fun_s = [&](int nr) -> float {
-//         float r = 0;
-//         for (int i = nr; i < data.size(); i += nr_threads)
-//         {
-//             float k = 1;
-//             for (int j = 0; i < n; i++)
-//                 k *= kernel((x - data[i][j]) / (h[j] * s[i]), n) / pow(h[j], n);
-//             r += k / pow(s[i], n);
-//         }
-//         return r;
-//     };
-
-//     vector<future<float>> fut_handler{};
-
-//     for (int i = 0; i < nr_threads; i++)
-//         if (s == nullptr)
-//             fut_handler.push_back(std::async(std::launch::async, par_fun, i));
-//         else
-//             fut_handler.push_back(std::async(std::launch::async, par_fun_s, i));
-
-//     for (auto &e : fut_handler) //sync threads
-//         answer += e.get();
-
-//     return answer / m;
-// }
-
-float estimator2(vector<float> &x, vector<vector<float>> &data, vector<float> &h, float *s = nullptr)
+float estimator(vector<float> &x, vector<vector<float>> &data, vector<float> &h, float *s = nullptr)
 {
     int m = data.size();
     int n = data[0].size();
@@ -154,7 +110,7 @@ vector<float> si_array(vector<vector<float>> &data, vector<float> &h, float c)
         float r = 0;
         for (int i = nr; i < data.size(); i += nr_threads)
         {
-            answer[i] = estimator2(data[i], data, h);
+            answer[i] = estimator(data[i], data, h);
         }
     };
 
@@ -253,11 +209,11 @@ void step(vector<vector<float>> &data, vector<float> &h, float dx = 0.01)
     auto par_fun = [&](int nr) -> void {
         for (int i = nr; i < data.size(); i += nr_threads)
         {
-            auto r = estimator2(data[i], data, h, s.data());
+            auto r = estimator(data[i], data, h, s.data());
             auto data_dx = data[i];
             for (auto &e : data_dx)
                 e += dx;
-            auto r_dx = estimator2(data_dx, data, h, s.data());
+            auto r_dx = estimator(data_dx, data, h, s.data());
             for (int j = 0; j < n; j++)
             {
                 // cout << r[j] << "\t";
@@ -369,14 +325,14 @@ float sigma(vector<vector<float>> &data){
 
 bool distanceCondition(float x, float dx, vector<vector<float>> &data, vector<float> &si, vector<float> &h){
     vector<float> xd{x};
-    auto f = estimator2(xd, data, h, si.data());
+    auto f = estimator(xd, data, h, si.data());
 
     vector<float> xd_p_sigma{x + dx};
-    auto f_p_sigma = estimator2(xd_p_sigma, data, h, si.data());
+    auto f_p_sigma = estimator(xd_p_sigma, data, h, si.data());
 
     vector<float> xd_m_sigma{x - dx};
-    auto f_m_sigma = estimator2(xd_m_sigma, data, h, si.data());
-    cout << f_m_sigma << "\t" << f << "\t" << f_p_sigma << "\t" << x << endl;
+    auto f_m_sigma = estimator(xd_m_sigma, data, h, si.data());
+    // cout << f_m_sigma << "\t" << f << "\t" << f_p_sigma << "\t" << x << endl;
     return f_m_sigma > f && f <= f_p_sigma;
 }
 
@@ -390,9 +346,44 @@ float clusterDistance(vector<vector<float>> &data){
     auto si = si_array(data_dist, h, 0.5);
     for(float xd = 0.01*sigma_d; xd < static_cast<int>(100*D-1)*0.01*sigma_d; xd+=0.01*sigma_d){
         if(distanceCondition(xd, 0.01*sigma_d, data_dist, si, h))
-            return xd;
+            return xd*2;
     }
     return -1;
+}
+
+
+#include<list>
+
+
+std::vector<std::vector<std::vector<float>>> makeClusters(std::list<std::vector<float>> &l, float dist)
+{
+    auto d_f = [](std::vector<float> &v1, std::vector<float> &v2) {
+        float s = 0;
+        for (int i = 0; i < v1.size(); i++)
+            s += std::abs(v1[i] - v2[i]);
+        return std::sqrt(s);
+    };
+    std::vector<std::vector<std::vector<float>>> clusters{};
+    int cluster_nr = 0;
+    while (!l.empty())
+    {
+        clusters.push_back(std::vector<std::vector<float>>());
+        clusters[cluster_nr].push_back(*begin(l));
+        l.erase(begin(l));
+        for (int i = 0; i < clusters[cluster_nr].size(); i++)
+            for (auto it = l.begin(); it != l.end();)
+            {
+                if (d_f(*it, clusters[cluster_nr][i]) <= dist)
+                {
+                    clusters[cluster_nr].push_back(*it);
+                    it = l.erase(it);
+                }
+                else
+                    it++;
+            }
+        cluster_nr++;
+    };
+    return clusters;
 }
 
 
@@ -415,4 +406,15 @@ int main(int argc, char **argv)
     float dist = clusterDistance(t);
     cout<<"ClusterDistance: "<<dist<<endl;
     // std::cout << "CPU: " << g_h_sum_cpu(t, 1.0) << std::endl;
+
+    std::list<std::vector<float>> l{};
+    for (int i = 0; i < t.size(); i++)
+        l.push_back(t[i]);
+
+    auto clusters = makeClusters(l, dist);
+    std::cout << "Clusters nr:" << clusters.size() << std::endl;
+    for (const auto &e : clusters)
+        std::cout << e.size() << "\t";
+
+    std::cout << "\nFINISHED" << std::endl;
 }
