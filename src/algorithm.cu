@@ -133,7 +133,7 @@ __global__ void step_alg(float *data, float *newData, int m, int n, float *h, fl
     cudaMalloc(&r_dx, sizeof(float));
     float *x;
     cudaMalloc(&x, n * sizeof(float));
-    for(int i = blockIdx.x; i<m; i+= gridDim.x){
+    for(int i = threadIdx.x; i<m; i+= blockDim.x){
         // printf("block %d \t %d\n", blockIdx.x, i);
         *r = 0;
         *r_dx = 0;
@@ -220,6 +220,45 @@ __global__ void distanceArrayMax(float *data, int d_size, float *sync_array, flo
                 idx = i;
         *answer = data[idx];
     }
+}
+
+__device__ float atomicMaxf(float* address, float val)
+{
+    int *address_as_int =(int*)address;
+    int old = *address_as_int, assumed;
+    while (val > __int_as_float(old)) {
+        assumed = old;
+        old = atomicCAS(address_as_int, assumed,
+                        __float_as_int(val));
+        }
+    return __int_as_float(old);
+}
+
+
+__global__ void max_reduce(const float* const d_array, float* d_max, 
+                                              const size_t elements)
+{
+    extern __shared__ float shared[];
+
+    int tid = threadIdx.x;
+    int gid = (blockDim.x * blockIdx.x) + tid;
+    shared[tid] = -999999999; 
+
+    while (gid < elements) {
+        shared[tid] = max(shared[tid], d_array[gid]);
+        gid += gridDim.x*blockDim.x;
+        }
+    __syncthreads();
+    gid = (blockDim.x * blockIdx.x) + tid;  // 1
+    for (unsigned int s=blockDim.x/2; s>0; s>>=1) 
+    {
+        if (tid < s && gid < elements)
+            shared[tid] = max(shared[tid], shared[tid + s]);
+        __syncthreads();
+    }
+
+    if (tid == 0)
+      atomicMaxf(d_max, shared[0]);
 }
 
 __global__ void sumDistance(float *data, int d_size, float *answer)
@@ -417,7 +456,7 @@ void step(float *data, float *data_tmp, int m, int n, float *h, float *b, float 
     //     cout<<endl;
     // throw int(5);
     cudaMemcpy(d_si, si.data(), m*sizeof(float), cudaMemcpyHostToDevice);
-    step_alg<<<128,1>>>(data, data_tmp, m, n, h, b, dx, d_si);
+    step_alg<<<1,128>>>(data, data_tmp, m, n, h, b, dx, d_si);
     cudaDeviceSynchronize();
     // std::vector<float> tt(m*n,0);
     // cudaMemcpy(tt.data(), data_tmp, m*n*sizeof(float), cudaMemcpyDeviceToHost);
@@ -481,97 +520,157 @@ void stopCondition(float *data, int m, int n, std::vector<float> &h, float alpha
     cudaFree(d_b);
 }
 
-// float kernelDistance(float *data, int m, int n)
-// {
-//     std::cout << "kernelDistance\n";
-//     int dist_size = m * (m - 1) / 2;
+float kernelDistance(float *data, int m, int n)
+{
+    int dist_size = m * (m - 1) / 2;
+    std::cout << "kernelDistance "<<dist_size<<endl;
 
-//     float *d_answer;
-//     cudaMalloc(&d_answer, sizeof(float));
-//     cudaMemset(d_answer, 0, sizeof(float));
+    float *d_answer;
+    cudaMalloc(&d_answer, sizeof(float));
+    cudaMemset(d_answer, 0, sizeof(float));
 
-//     float *d_dist;
-//     cudaMalloc(&d_dist, dist_size * sizeof(float));
+    float *d_dist;
+    cudaMalloc(&d_dist, dist_size * sizeof(float));
 
-//     float *sync_array;
-//     cudaMalloc(&sync_array, THREADS_MAX * sizeof(float));
-//     cudaMemset(sync_array, 0, THREADS_MAX * sizeof(float));
+    distanceArray<<<(dist_size / THREADS_MAX) + 1, THREADS_MAX>>>(data, m, n, dist_size, d_dist);
+    cudaDeviceSynchronize();
 
-//     distanceArray<<<(dist_size / THREADS_MAX) + 1, THREADS_MAX>>>(data, m, n, dist_size, d_dist);
-//     cudaDeviceSynchronize();
+    // vector<float> dist_a(dist_size, 0);
+    // cudaMemcpy(dist_a.data(), d_dist, dist_size*sizeof(float), cudaMemcpyDeviceToHost);
+    // for(auto &e: dist_a)
+    //     cout<<e<<endl;
+    // cout<<endl;
+    // cout<<accumulate(begin(dist_a), end(dist_a), 0)<<endl;
+    // throw int(5);
+    float D = 0.0;
 
-//     float D = 0.0;
+    // distanceArrayMax<<<1, THREADS_MAX>>>(d_dist, dist_size, sync_array, d_answer);
+    max_reduce<<<128,4*WARP,4*WARP*sizeof(float)>>>(d_dist,d_answer,dist_size);
+    cudaDeviceSynchronize();
+    cudaMemcpy(&D, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemset(d_answer, 0, sizeof(float));
 
-//     distanceArrayMax<<<1, THREADS_MAX>>>(d_dist, dist_size, sync_array, d_answer);
-//     cudaDeviceSynchronize();
-//     cudaMemcpy(&D, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-//     cudaMemset(d_answer, 0, sizeof(float));
-//     cudaFree(sync_array);
+    std::cout << "golden D" << std::endl;
+    float h = goldenRatio(d_dist, dist_size, 1)[0]; // one element vector - one dimension
 
-//     std::cout << "golden D" << std::endl;
-//     float h_d = goldenRatio(d_dist, dist_size, 1)[0]; // one element vector - one dimension
+    std::cout <<"D "<<D<<"\t h " << h << "\t size " << dist_size << std::endl;
 
-//     std::cout << D<<"\t" << h_d << "\t" << dist_size << std::endl;
+    float ex_d;
+    sumDistance<<<(dist_size / THREADS_MAX) + 1, THREADS_MAX>>>(d_dist, dist_size, d_answer);
+    cudaDeviceSynchronize();
+    cudaMemcpy(&ex_d, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemset(d_answer, 0, sizeof(float));
+    ex_d = ex_d / dist_size;
 
-//     float ex_d;
-//     sumDistance<<<(dist_size / THREADS_MAX) + 1, THREADS_MAX>>>(d_dist, dist_size, d_answer);
-//     cudaDeviceSynchronize();
-//     cudaMemcpy(&ex_d, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-//     cudaMemset(d_answer, 0, sizeof(float));
-//     ex_d = ex_d / dist_size;
+    cout<<"EX_D: "<<ex_d<<endl;
 
-//     cout<<"EX_D: "<<ex_d<<endl;
+    float sigma_d;
+    sumSquareDevDistance<<<(dist_size / THREADS_MAX) + 1, THREADS_MAX>>>(d_dist, dist_size, ex_d, d_answer);
+    cudaDeviceSynchronize();
+    cudaMemcpy(&sigma_d, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemset(d_answer, 0, sizeof(float));
+    sigma_d = std::sqrt(sigma_d / dist_size);
 
-//     float sigma_d;
-//     sumSquareDevDistance<<<(dist_size / THREADS_MAX) + 1, THREADS_MAX>>>(d_dist, dist_size, ex_d, d_answer);
-//     cudaDeviceSynchronize();
-//     cudaMemcpy(&sigma_d, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-//     cudaMemset(d_answer, 0, sizeof(float));
-//     sigma_d = std::sqrt(sigma_d / dist_size);
+    float* d_h;
+    cudaMalloc(&d_h, sizeof(float));
+    cudaMemcpy(d_h, &h, sizeof(float), cudaMemcpyHostToDevice);
 
-//     float *si; //current as f^*
-//     cudaMalloc(&si, dist_size * sizeof(float));
-//     estimatorArray<<<(dist_size / THREADS_MAX) + 1, THREADS_MAX>>>(d_dist, dist_size, h_d, n, si);
-//     cudaDeviceSynchronize();
-//     sumDistanceDivide<<<(dist_size / THREADS_MAX) + 1, THREADS_MAX>>>(si, dist_size, d_answer); //new kernel needed, cause of INF
-//     cudaDeviceSynchronize();
-//     float si_avg;
-//     cudaMemcpy(&si_avg, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-//     cudaMemset(d_answer, 0, sizeof(float));
-//     // si_avg = si_avg / dist_size;
+    float *d_si; //current as f^*
+    cudaMalloc(&d_si, dist_size * sizeof(float));
+    estimator_array<<<128, 1>>>( d_dist ,dist_size, 1, d_h, d_si);
+    cudaDeviceSynchronize();
+    vector<float> si(dist_size,0);
+    cudaMemcpy(si.data(), d_si, dist_size*sizeof(float), cudaMemcpyDeviceToHost);
+    
+    float si_avg = accumulate(begin(si), end(si), 0, [&](float r, float x) {
+        return r + log(x);
+    });
+    si_avg = expf(si_avg / dist_size);
 
-//     estimatorToSiArray<<<(dist_size / THREADS_MAX) + 1, THREADS_MAX>>>(si, dist_size, si_avg); //now si is si ;D
-//     cudaDeviceSynchronize();
+    //now si
+    float c = 0.5;
+    for (auto &e : si)
+        e = pow(e / si_avg, -c);
 
-//     // Find x_d
-//     std::cout << "SIGMA\tSI_AVG"<<endl;
-//     std::cout << sigma_d << "\t" << si_avg << std::endl;
-//     float xd;
-//     int flags = 1;
-//     int *flags_d;
-//     cudaMalloc(&flags_d, sizeof(int));
-//     cudaMemcpy(flags_d, &flags, sizeof(int), cudaMemcpyHostToDevice);
-//     std::cout << "MAX DS: " << (static_cast<int>(100 * D) - 1) * sigma_d << std::endl;
-//     for (float ds = 0.01; ds <= (static_cast<int>(100 * D) - 1); ds += 0.01)
-//     {
-//         xd = ds * sigma_d;
-//         // std::cout<<xd<<std::endl;
-//         smallestXd<<<7 * 9, WARP * 3>>>(d_dist, si, dist_size, xd, h_d, sigma_d, flags_d);
-//         cudaDeviceSynchronize();
-//         cudaMemcpy(&flags, flags_d, sizeof(int), cudaMemcpyDeviceToHost);
-//         if (flags == 0)
-//             break;
-//         flags = 1;
-//         cudaMemcpy(flags_d, &flags, sizeof(int), cudaMemcpyHostToDevice);
-//     }
+    // for(auto e:si)
+    //     cout<<e<<"\t";
+    //     cout<<endl;
+    // throw int(5);
+    cudaMemcpy(d_si, si.data(), dist_size*sizeof(float), cudaMemcpyHostToDevice);
 
-//     cudaFree(flags_d);
-//     cudaFree(d_answer);
-//     cudaFree(d_dist);
-//     cudaFree(si);
+    // Find x_d
+    // vector<float> s(dist_size, 0);
+    // cudaMemcpy(s.data(), d_si, dist_size*sizeof(float), cudaMemcpyDeviceToHost);
+    // cout<<accumulate(begin(s), end(s),0)<<endl;
+    // throw int(5);
+    std::cout << "SIGMA\tSI_AVG"<<endl;
+    std::cout << sigma_d << "\t" << si_avg << std::endl;
+    float xd, xd_ps, xd_ms;
+    int flags = 1;
+    int *flags_d;
+    cudaMalloc(&flags_d, sizeof(int));
+    cudaMemcpy(flags_d, &flags, sizeof(int), cudaMemcpyHostToDevice);
+    std::cout << "MAX DS: " << (static_cast<int>(100 * D) - 1) * sigma_d << std::endl;
+    float *d_xd, *d_xd_ps, *d_xd_ms;
+    cudaMalloc(&d_xd, sizeof(float));
+    cudaMalloc(&d_xd_ps, sizeof(float));
+    cudaMalloc(&d_xd_ms, sizeof(float));
 
-//     return xd;
-// }
+    float *d_r1, *d_r2, *d_r3;
+    cudaMalloc(&d_r1, sizeof(float));
+    cudaMalloc(&d_r2, sizeof(float));
+    cudaMalloc(&d_r3, sizeof(float));
+
+    cudaStream_t st1, st2, st3;
+    cudaStreamCreate(&st1);
+    cudaStreamCreate(&st2);
+    cudaStreamCreate(&st3);
+
+    for (float ds = 0.01; ds <= (static_cast<int>(100 * D) - 1); ds += 0.01)
+    {
+        cudaMemset(d_r1, 0, sizeof(float));
+        cudaMemset(d_r2, 0, sizeof(float));
+        cudaMemset(d_r3, 0, sizeof(float));
+        xd = ds * sigma_d;
+        xd_ps = xd + 0.01*sigma_d;
+        xd_ms = xd - 0.01*sigma_d;
+        cudaMemcpy(d_xd, &xd, sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_xd_ps, &xd_ps, sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_xd_ms, &xd_ms, sizeof(float), cudaMemcpyHostToDevice);
+        estimator<<<1,4*WARP,0,st1>>>(d_xd, d_dist, dist_size, 1, d_h, d_r1, d_si);
+        estimator<<<1,4*WARP,0,st2>>>(d_xd_ps, d_dist, dist_size, 1, d_h, d_r2, d_si);
+        estimator<<<1,4*WARP,0,st3>>>(d_xd_ms, d_dist, dist_size, 1, d_h, d_r3, d_si);
+        cudaDeviceSynchronize();
+        cudaMemcpy(&xd, d_r1, sizeof(float), cudaMemcpyDeviceToHost);
+        cudaMemcpy(&xd_ps, d_r2, sizeof(float), cudaMemcpyDeviceToHost);
+        cudaMemcpy(&xd_ms, d_r3, sizeof(float), cudaMemcpyDeviceToHost);
+        cout<<ds * sigma_d<<"\t"<<xd<<"\t"<<xd_ms<<"\t"<<xd_ps<<endl;
+        if( xd < xd_ms && xd <= xd_ps ){
+            xd = ds*sigma_d;
+            break;
+        }
+        // smallestXd<<<7 * 9, WARP * 3>>>(d_dist, d_si, dist_size, xd, h, sigma_d, flags_d);
+        // cudaDeviceSynchronize();
+        // cudaMemcpy(&flags, flags_d, sizeof(int), cudaMemcpyDeviceToHost);
+        // if (flags == 0)
+        //     break;
+        // flags = 1;
+        // cudaMemcpy(flags_d, &flags, sizeof(int), cudaMemcpyHostToDevice);
+    }
+
+    cudaFree(flags_d);
+    cudaFree(d_answer);
+    cudaFree(d_dist);
+    cudaFree(d_si);
+    cudaFree(d_r1);
+    cudaFree(d_r2);
+    cudaFree(d_r3);
+    cudaFree(d_xd);
+    cudaFree(d_xd_ps);
+    cudaFree(d_xd_ms);
+
+    return xd;
+}
 
 int main(int argc, char **argv)
 {
@@ -607,15 +706,15 @@ int main(int argc, char **argv)
     stopCondition(d_t, m, n, h);
 
     cudaMemcpy(t.data(), d_t, m*n*sizeof(float), cudaMemcpyDeviceToHost);
-    for(int i=0; i<m; i++)
-        std::cout<<t[i*n]<<" "<<t[i*n+1]<<" "<<t[i*n+2]<<" "<<t[i*n+3]<<std::endl;
+    // for(int i=0; i<m; i++)
+    //     std::cout<<t[i*n]<<" "<<t[i*n+1]<<" "<<t[i*n+2]<<" "<<t[i*n+3]<<std::endl;
 
     // cout<<"starting STOPCondition" << endl;
     // stopCondition(d_t, m, n, h);
     // cout<<"finished STOPCondition" << endl;
 
-    // float distance = kernelDistance(d_t, m, n);
-    // std::cout << "Kernel distance: " << distance << std::endl;
+    float distance = kernelDistance(d_t, m, n);
+    std::cout << "Kernel distance: " << distance << std::endl;
 
     // t[0] = 0;
     // std::cout << t[0] << "\t";
@@ -623,14 +722,15 @@ int main(int argc, char **argv)
     // cudaMemcpy(t.data(), d_t, m * n * sizeof(float), cudaMemcpyDeviceToHost); //k* to host
     // std::cout << t[0] << std::endl;
 
-    // std::list<std::vector<float>> l{};
-    // for (int i = 0; i < m; i++)
-    //     l.push_back({t[i * n], t[i * n + 1], t[i * n + 2], t[i * n + 3]});
+    std::list<std::vector<float>> l{};
+    for (int i = 0; i < m; i++)
+        l.push_back({t[i * n], t[i * n + 1], t[i * n + 2], t[i * n + 3]});
 
-    // auto clusters = makeClusters(l, distance);
-    // std::cout << "Clusters nr:" << clusters.size() << std::endl;
-    // for (const auto &e : clusters)
-    //     std::cout << e.size() << "\t";
+    auto clusters = makeClusters(l, distance);
+    std::cout << "Clusters nr:" << clusters.size() << std::endl;
+    for (const auto &e : clusters)
+        std::cout << e.size() << "\t";
+    cout<<endl;
 
     // std::cout << "\nFINISHED" << std::endl;
     // std::cout << l.empty() << std::endl;

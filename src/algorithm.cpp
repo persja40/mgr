@@ -350,6 +350,7 @@ bool distanceCondition(float x, float dx, vector<vector<float>> &data, float *si
     vector<float> xd_m_sigma{x - dx};
     auto f_m_sigma = estimator(xd_m_sigma, data, h, si);
     // cout << f_m_sigma << "\t" << f << "\t" << f_p_sigma << "\t" << x << endl;
+    cout<<x<<"\t"<<f<<"\t"<<f_m_sigma<<"\t"<<f_p_sigma<<endl;
     return f_m_sigma > f && f <= f_p_sigma;
 }
 
@@ -357,11 +358,20 @@ float clusterDistance(vector<vector<float>> &data)
 {
     auto data_dist = distanceArray(data);
     cout << "Dist arr size: " << data_dist.size() << endl;
+    // for(auto &e: data_dist)
+    //         cout<<e[0]<<endl;
+    // cout<<endl;
+    // cout<<accumulate(begin(data_dist), end(data_dist), 0, [](float r, vector<float> v){return r+v[0];})<<endl;
+    // throw int(5);
     float D = maxDistance(data_dist);
+    cout << "D " << D << endl;
     float sigma_d = sigma(data_dist);
     cout << "Sigma_d: " << sigma_d << endl;
     auto h = goldenRatio(data_dist);
+    cout << "h_d: " << h[0] << endl;
     auto si = si_array(data_dist, h, 0.5);
+    // cout<<accumulate(begin(si), end(si),0)<<endl;
+    // throw int(5);
     float xd = 0;
     for (xd = 0.01 * sigma_d; xd < static_cast<int>(100 * D - 1) * 0.01 * sigma_d; xd += 0.01 * sigma_d)
     {
@@ -394,28 +404,28 @@ int main(int argc, char **argv)
     for (int i = 0; i < t.size(); i++)
         l.push_back(t[i]);
 
-    for (const auto v : t)
-    {
-        for (const auto e : v)
-            std::cout << e << " ";
-        std::cout << std::endl;
-    }
+    // for (const auto v : t)
+    // {
+    //     for (const auto e : v)
+    //         std::cout << e << " ";
+    //     std::cout << std::endl;
+    // }
 
-    auto clusters = makeClusters(l, dist*0.5);
+    auto clusters = makeClusters(l, dist);
     std::cout << "Clusters nr:" << clusters.size() << std::endl;
     for (const auto &e : clusters)
         std::cout << e.size() << "\t";
 
-    cout<<endl;
+    // cout<<endl;
 
-    for(auto &v : clusters){
-        for(auto &e:v){
-            for(auto &w : e)
-                cout<<w<<"\t";
-            cout<<endl;
-        }
-        cout<<endl;
-    }
+    // for(auto &v : clusters){
+    //     for(auto &e:v){
+    //         for(auto &w : e)
+    //             cout<<w<<"\t";
+    //         cout<<endl;
+    //     }
+    //     cout<<endl;
+    // }
 
     std::cout << "\nFINISHED" << std::endl;
 }
