@@ -270,7 +270,7 @@ __global__ void sumDistance(float *data, int d_size, float *answer)
         if (threadIdx.x == 0)
             rr = 0.0;
         __syncthreads();
-        atomicAdd(&rr, data[idx]);
+        atomicAdd(&rr, data[idx]/d_size);
         __syncthreads();
         if (threadIdx.x == 0)
             atomicAdd(answer, rr);
@@ -289,18 +289,11 @@ __global__ void sumDistanceDivide(float *data, int d_size, float *answer)
 
 __global__ void sumSquareDevDistance(float *data, int d_size, float EX, float *answer)
 {
-    int idx = blockIdx.x * THREADS_MAX + threadIdx.x;
-    if (idx < d_size)
-    {
-        __shared__ float rr;
-        if (threadIdx.x == 0)
-            rr = 0.0;
-        __syncthreads();
-        atomicAdd(&rr, pow(data[idx] - EX, 2.0));
-        __syncthreads();
-        if (threadIdx.x == 0)
-            atomicAdd(answer, rr);
+    float part = 0;
+    for(int idx = blockIdx.x * blockDim.x + threadIdx.x; idx<d_size; idx += blockDim.x*gridDim.x){
+        part += powf(data[idx] - EX, 2.0)/(d_size-1);
     }
+    atomicAdd(answer, part);
 }
 
 __global__ void estimatorArray(float *data, int d_size, float h_d, int n, float *answer)
@@ -382,7 +375,7 @@ __global__ void smallestXd(float *d, float *si, int d_size, float x_d, float h, 
 WRAPERS
 ********************************************************/
 
-std::vector<float> goldenRatio(float *data, int m, int n, float a_u = 0.0001, float b_u = 10'000, float eps = 0.001)
+std::vector<float> goldenRatio(float *data, int m, int n, float a_u = 0.0001, float b_u = 10'000, float eps = 0.01)
 {
     float *d_answer;
     cudaMalloc(&d_answer, sizeof(float));
@@ -415,7 +408,7 @@ std::vector<float> goldenRatio(float *data, int m, int n, float a_u = 0.0001, fl
             f2 = f2 / (pow(m, 2) * pow(l2,1)) + 2 / (m * pow(l2,1))/powf(2 * M_PI,1*0.5);
             cudaMemset(d_answer, 0, sizeof(float));
 
-            // cout<<"l1 "<<l1<<"\tf1 "<<f1<<"\tl2 "<<l2<<"\tf2 "<<f2<<"\t"<<nth<<endl;
+            cout<<"l1 "<<l1<<"\tf1 "<<f1<<"\tl2 "<<l2<<"\tf2 "<<f2<<"\t"<<nth<<endl;
 
             if (f2 > f1)
                 b = l2;
@@ -512,7 +505,7 @@ void stopCondition(float *data, int m, int n, std::vector<float> &h, float alpha
         distance<<<128, 4*WARP>>>(data, m, n, d_answer);
         cudaDeviceSynchronize();
         cudaMemcpy(&dk, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-        cout << d0 << "\t" << dk_m1 << "\t" << dk << "\t" << fabs(dk_m1 - dk) << endl;
+        // cout << d0 << "\t" << dk_m1 << "\t" << dk << "\t" << fabs(dk_m1 - dk) << endl;
     }
     cudaFree(data_tmp);
     cudaFree(d_answer);
@@ -535,12 +528,12 @@ float kernelDistance(float *data, int m, int n)
     distanceArray<<<(dist_size / THREADS_MAX) + 1, THREADS_MAX>>>(data, m, n, dist_size, d_dist);
     cudaDeviceSynchronize();
 
-    // vector<float> dist_a(dist_size, 0);
-    // cudaMemcpy(dist_a.data(), d_dist, dist_size*sizeof(float), cudaMemcpyDeviceToHost);
-    // for(auto &e: dist_a)
-    //     cout<<e<<endl;
-    // cout<<endl;
-    // cout<<accumulate(begin(dist_a), end(dist_a), 0)<<endl;
+    vector<float> dist_a(dist_size, 0);
+    cudaMemcpy(dist_a.data(), d_dist, dist_size*sizeof(float), cudaMemcpyDeviceToHost);
+    for(auto &e: dist_a)
+        cout<<e<<endl;
+    cout<<endl;
+    cout<<accumulate(begin(dist_a), end(dist_a), 0)<<endl;
     // throw int(5);
     float D = 0.0;
 
@@ -555,22 +548,23 @@ float kernelDistance(float *data, int m, int n)
 
     std::cout <<"D "<<D<<"\t h " << h << "\t size " << dist_size << std::endl;
 
-    float ex_d;
-    sumDistance<<<(dist_size / THREADS_MAX) + 1, THREADS_MAX>>>(d_dist, dist_size, d_answer);
-    cudaDeviceSynchronize();
-    cudaMemcpy(&ex_d, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemset(d_answer, 0, sizeof(float));
-    ex_d = ex_d / dist_size;
+    float ex_d = accumulate(dist_a.begin(), dist_a.end(), 0.0)/dist_a.size();
+    // sumDistavector<float> dist_a(dist_size, 0);
+    // nce<<<(dist_size / THREADS_MAX) + 1, THREADS_MAX>>>(d_dist, dist_size, d_answer);
+    // cudaDeviceSynchronize();
+    // cudaMemcpy(&ex_d, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
+    // cudaMemset(d_answer, 0, sizeof(float));
 
     cout<<"EX_D: "<<ex_d<<endl;
 
     float sigma_d;
-    sumSquareDevDistance<<<(dist_size / THREADS_MAX) + 1, THREADS_MAX>>>(d_dist, dist_size, ex_d, d_answer);
+    sumSquareDevDistance<<<128, 4*WARP>>>(d_dist, dist_size, ex_d, d_answer);
     cudaDeviceSynchronize();
     cudaMemcpy(&sigma_d, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemset(d_answer, 0, sizeof(float));
-    sigma_d = std::sqrt(sigma_d / dist_size);
+    sigma_d = std::sqrt(sigma_d);
 
+    // h = 0.246597;
     float* d_h;
     cudaMalloc(&d_h, sizeof(float));
     cudaMemcpy(d_h, &h, sizeof(float), cudaMemcpyHostToDevice);
@@ -632,19 +626,21 @@ float kernelDistance(float *data, int m, int n)
         cudaMemset(d_r2, 0, sizeof(float));
         cudaMemset(d_r3, 0, sizeof(float));
         xd = ds * sigma_d;
+        // if(xd>2)
+        //     throw int(5);
         xd_ps = xd + 0.01*sigma_d;
         xd_ms = xd - 0.01*sigma_d;
         cudaMemcpy(d_xd, &xd, sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(d_xd_ps, &xd_ps, sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(d_xd_ms, &xd_ms, sizeof(float), cudaMemcpyHostToDevice);
-        estimator<<<1,4*WARP,0,st1>>>(d_xd, d_dist, dist_size, 1, d_h, d_r1, d_si);
-        estimator<<<1,4*WARP,0,st2>>>(d_xd_ps, d_dist, dist_size, 1, d_h, d_r2, d_si);
-        estimator<<<1,4*WARP,0,st3>>>(d_xd_ms, d_dist, dist_size, 1, d_h, d_r3, d_si);
+        estimator<<<1,4*WARP,0,st1>>>(d_xd, d_dist, dist_size, 1, d_h, d_r1, nullptr);
+        estimator<<<1,4*WARP,0,st2>>>(d_xd_ps, d_dist, dist_size, 1, d_h, d_r2, nullptr);
+        estimator<<<1,4*WARP,0,st3>>>(d_xd_ms, d_dist, dist_size, 1, d_h, d_r3, nullptr);
         cudaDeviceSynchronize();
         cudaMemcpy(&xd, d_r1, sizeof(float), cudaMemcpyDeviceToHost);
         cudaMemcpy(&xd_ps, d_r2, sizeof(float), cudaMemcpyDeviceToHost);
         cudaMemcpy(&xd_ms, d_r3, sizeof(float), cudaMemcpyDeviceToHost);
-        cout<<ds * sigma_d<<"\t"<<xd<<"\t"<<xd_ms<<"\t"<<xd_ps<<endl;
+        // cout<<ds * sigma_d<<"\t"<<xd<<"\t"<<xd_ms<<"\t"<<xd_ps<<endl;
         if( xd < xd_ms && xd <= xd_ps ){
             xd = ds*sigma_d;
             break;
@@ -726,7 +722,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < m; i++)
         l.push_back({t[i * n], t[i * n + 1], t[i * n + 2], t[i * n + 3]});
 
-    auto clusters = makeClusters(l, distance);
+    auto clusters = makeClusters(l, distance*2);
     std::cout << "Clusters nr:" << clusters.size() << std::endl;
     for (const auto &e : clusters)
         std::cout << e.size() << "\t";

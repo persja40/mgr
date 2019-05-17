@@ -121,7 +121,7 @@ vector<float> si_array(vector<vector<float>> &data, vector<float> &h, float c)
     for (auto &e : fut_handler) //sync threads
         e.wait();
 
-    float si_avg = accumulate(begin(answer), end(answer), 0, [&](float r, float x) {
+    float si_avg = accumulate(begin(answer), end(answer), 0.0, [&](float r, float x) {
         return r + log(x);
     });
     si_avg = expf(si_avg / m);
@@ -135,7 +135,7 @@ vector<float> si_array(vector<vector<float>> &data, vector<float> &h, float c)
 
 // API
 
-vector<float> goldenRatio(vector<vector<float>> &data, float a_u = 0.0001, float b_u = 10'000, float eps = 0.001)
+vector<float> goldenRatio(vector<vector<float>> &data, float a_u = 0.0001, float b_u = 10'000, float eps = 0.01)
 {
     std::vector<float> result{};
     for (int nth = 0; nth < data.at(0).size(); nth++)
@@ -155,7 +155,7 @@ vector<float> goldenRatio(vector<vector<float>> &data, float a_u = 0.0001, float
             f1 = g_h(data, l1, nth);
             f2 = g_h(data, l2, nth);
 
-            // cout << "l1 " << l1 << "\tf1 " << f1 << "\tl2 " << l2 << "\tf2 " << f2 << " " << nth << endl;
+            cout << "l1 " << l1 << "\tf1 " << f1 << "\tl2 " << l2 << "\tf2 " << f2 << " " << nth << endl;
 
             if (f2 > f1)
                 b = l2;
@@ -325,6 +325,7 @@ float sigma(vector<vector<float>> &data)
     for (auto &e : fut_handler)
         result += e.get();
     fut_handler.clear();
+    cout<<"EX "<<result<<endl;
     auto fun_sigma_sum = [&](int nr, float EX) -> float {
         float r = 0;
         for (int i = nr; i < m; i += nr_threads)
