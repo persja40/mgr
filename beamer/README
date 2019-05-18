@@ -1,0 +1,28 @@
+A theme for the LaTeX beamer class based on the official AGH-UST
+PowerPoint template.
+
+Installation
+
+    There are two ways to use beamer-AGH.
+
+    1. Copy beamerthemeAGH* files to one of the TeX root directories
+       (eg. to $TEXMF/tex/latex/AGH) and refresh the filename database.
+    2. Copy beamerthemeAGH* files to the directory with the files that
+       are being compiled.
+
+Usage
+
+    1. To load the theme, write \usetheme{AGH}
+    2. To replace default Computer Modern typeface family with Latin
+       Modern, write \usepackage{lmodern}
+    3. To get English or Polish version of the title slide, write 
+       \titleframe[en] or \titleframe[pl], respectively (instead of 
+       \frame{\titlepage})
+
+Licence
+
+    The theme files may be distributed and/or modified under the
+    LaTeX Project Public License.
+    The AGH-UST graphic symbols and presentation backgrounds are
+    proprietary and should not be used outside AGH-UST without
+    permission.
