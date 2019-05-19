@@ -160,6 +160,18 @@ __global__ void estimator_array(float *data, int m, int n, float *h, float *answ
         estimator<<<1,4*WARP>>>(&data[i*n], data, m, n, h, &answer[i]);
 }
 
+__global__ void reduce(float *data, int size, float* answer){
+    float part=0;
+    for(int idx = threadIdx.x + blockIdx.x * blockDim.x; idx<size; idx+=blockDim.x*gridDim.x)
+        part+= data[idx];
+    atomicAdd(answer, part);
+}
+
+__global__ void estimator_to_si(float *si, int size, float avg, float c){
+    for(int idx = threadIdx.x + blockIdx.x * blockDim.x; idx<size; idx+=blockDim.x*gridDim.x)
+        si[idx] = powf(si[idx]/avg, -c);
+}
+
 
 /*
     kernelDistance kernels
@@ -431,24 +443,33 @@ void step(float *data, float *data_tmp, int m, int n, float *h, float *b, float 
     cudaMemset(d_si, 0, m * sizeof(float));
     estimator_array<<<128, 1>>>(data, m, n, h, d_si);
     cudaDeviceSynchronize();
-    vector<float> si(m,0);
-    cudaMemcpy(si.data(), d_si, m*sizeof(float), cudaMemcpyDeviceToHost);
+    // vector<float> si(m,0);
+    // cudaMemcpy(si.data(), d_si, m*sizeof(float), cudaMemcpyDeviceToHost);
     
-    float si_avg = accumulate(begin(si), end(si), 0, [&](float r, float x) {
-        return r + log(x);
-    });
+    float *d_answer;
+    cudaMalloc(&d_answer, sizeof(float));
+    cudaMemset(d_answer, 0, sizeof(float));
+    // float si_avg = accumulate(begin(si), end(si), 0, [&](float r, float x) {
+    //     return r + log(x);
+    // });
+    reduce<<<128, 4*WARP>>>(d_si, m, d_answer);
+    float si_avg;
+    cudaDeviceSynchronize();
+    cudaMemcpy(&si_avg, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
     si_avg = expf(si_avg / m);
 
     //now si
     float c = 0.5;
-    for (auto &e : si)
-        e = pow(e / si_avg, -c);
+    // for (auto &e : si)
+    //     e = pow(e / si_avg, -c);
+    estimator_to_si<<<128,4*WARP>>>(d_si, m, si_avg, c);
+    cudaDeviceSynchronize();
 
     // for(auto e:si)
     //     cout<<e<<"\t";
     //     cout<<endl;
     // throw int(5);
-    cudaMemcpy(d_si, si.data(), m*sizeof(float), cudaMemcpyHostToDevice);
+    // cudaMemcpy(d_si, si.data(), m*sizeof(float), cudaMemcpyHostToDevice);
     step_alg<<<1,128>>>(data, data_tmp, m, n, h, b, dx, d_si);
     cudaDeviceSynchronize();
     // std::vector<float> tt(m*n,0);
@@ -460,6 +481,7 @@ void step(float *data, float *data_tmp, int m, int n, float *h, float *b, float 
     // }
     // throw int(5);
     cudaFree(d_si);
+    cudaFree(d_answer);
 }
 
 void stopCondition(float *data, int m, int n, std::vector<float> &h, float alpha = 0.001)
@@ -505,7 +527,7 @@ void stopCondition(float *data, int m, int n, std::vector<float> &h, float alpha
         distance<<<128, 4*WARP>>>(data, m, n, d_answer);
         cudaDeviceSynchronize();
         cudaMemcpy(&dk, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
-        // cout << d0 << "\t" << dk_m1 << "\t" << dk << "\t" << fabs(dk_m1 - dk) << endl;
+        cout << d0 << "\t" << dk_m1 << "\t" << dk << "\t" << fabs(dk_m1 - dk) << endl;
     }
     cudaFree(data_tmp);
     cudaFree(d_answer);
@@ -530,10 +552,10 @@ float kernelDistance(float *data, int m, int n)
 
     vector<float> dist_a(dist_size, 0);
     cudaMemcpy(dist_a.data(), d_dist, dist_size*sizeof(float), cudaMemcpyDeviceToHost);
-    for(auto &e: dist_a)
-        cout<<e<<endl;
-    cout<<endl;
-    cout<<accumulate(begin(dist_a), end(dist_a), 0)<<endl;
+    // for(auto &e: dist_a)
+    //     cout<<e<<endl;
+    // cout<<endl;
+    // cout<<accumulate(begin(dist_a), end(dist_a), 0)<<endl;
     // throw int(5);
     float D = 0.0;
 
@@ -573,24 +595,32 @@ float kernelDistance(float *data, int m, int n)
     cudaMalloc(&d_si, dist_size * sizeof(float));
     estimator_array<<<128, 1>>>( d_dist ,dist_size, 1, d_h, d_si);
     cudaDeviceSynchronize();
-    vector<float> si(dist_size,0);
-    cudaMemcpy(si.data(), d_si, dist_size*sizeof(float), cudaMemcpyDeviceToHost);
+    // vector<float> si(dist_size,0);
+    // cudaMemcpy(si.data(), d_si, dist_size*sizeof(float), cudaMemcpyDeviceToHost);
     
-    float si_avg = accumulate(begin(si), end(si), 0, [&](float r, float x) {
-        return r + log(x);
-    });
+    cudaMemset(d_answer, 0, sizeof(float));
+    // float si_avg = accumulate(begin(si), end(si), 0, [&](float r, float x) {
+    //     return r + log(x);
+    // });
+    reduce<<<128, 4*WARP>>>(d_si, dist_size, d_answer);
+    float si_avg;
+    cudaDeviceSynchronize();
+    cudaMemset(d_answer, 0, sizeof(float));
+    cudaMemcpy(&si_avg, d_answer, sizeof(float), cudaMemcpyDeviceToHost);
     si_avg = expf(si_avg / dist_size);
 
     //now si
     float c = 0.5;
-    for (auto &e : si)
-        e = pow(e / si_avg, -c);
+    // for (auto &e : si)
+    //     e = pow(e / si_avg, -c);
 
+    estimator_to_si<<<128,4*WARP>>>(d_si, dist_size, si_avg, c);
+    cudaDeviceSynchronize();
     // for(auto e:si)
     //     cout<<e<<"\t";
     //     cout<<endl;
     // throw int(5);
-    cudaMemcpy(d_si, si.data(), dist_size*sizeof(float), cudaMemcpyHostToDevice);
+    // cudaMemcpy(d_si, si.data(), dist_size*sizeof(float), cudaMemcpyHostToDevice);
 
     // Find x_d
     // vector<float> s(dist_size, 0);
@@ -640,7 +670,7 @@ float kernelDistance(float *data, int m, int n)
         cudaMemcpy(&xd, d_r1, sizeof(float), cudaMemcpyDeviceToHost);
         cudaMemcpy(&xd_ps, d_r2, sizeof(float), cudaMemcpyDeviceToHost);
         cudaMemcpy(&xd_ms, d_r3, sizeof(float), cudaMemcpyDeviceToHost);
-        // cout<<ds * sigma_d<<"\t"<<xd<<"\t"<<xd_ms<<"\t"<<xd_ps<<endl;
+        cout<<ds * sigma_d<<"\t"<<xd<<"\t"<<xd_ms<<"\t"<<xd_ps<<endl;
         if( xd < xd_ms && xd <= xd_ps ){
             xd = ds*sigma_d;
             break;
