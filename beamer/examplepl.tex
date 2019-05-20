@@ -3,6 +3,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage{lmodern}
 \usepackage{listings}
+\usepackage{graphicx}
 \usetheme{AGH}
 
 \lstset{
@@ -110,7 +111,13 @@ $\hat{f}_d(x-0.01\sigma_d) > \hat{f}_d \wedge \hat{f}_d \leq \hat{f}_d(x+0.01\si
 \lstinputlisting[language=C++, firstline=20, lastline=28, basicstyle=\small]{code.cpp}
 \end{frame}
 
-
+\begin{frame}\frametitle{Zrównoleglone fragmenty algorytmu }
+\begin{itemize}
+\item estymator jądrowy - $\hat{f}$, $s_i$
+\item funkcja $g(h)$
+\item funkcje odległości $D_k$
+\end{itemize}
+\end{frame}
 
 \begin{frame}\frametitle{Procedura tworzenia klastrów}
 \begin{center}
@@ -124,7 +131,22 @@ Niniejszy fragment algorytmu jest sekwencyjny!
 
 \section{Wyniki}
 \begin{frame}\frametitle{Wyniki wydajnościowe}
+\begin{table}[]
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|c|c|c|c|c|c|c|c|}
+\hline
+Unit \textbackslash data size                                           & 10    & 50    & 100   & 150   & 250    & 400   & 1000 \\ \hline
+\begin{tabular}[c]{@{}c@{}}i7 4710HQ\\ (4 cores)\end{tabular}           & 131ms & 2.6s  & 51s   & 4m7s  &        &       &      \\ \hline
+\begin{tabular}[c]{@{}c@{}}i7 7700HQ \\ (4 cores)\end{tabular}          & 112ms & 2.9s  & 40s   & 3m22s & 26m55s &       &      \\ \hline
+\begin{tabular}[c]{@{}c@{}}GTX 850m \\ (640 cuda cores)\end{tabular}    & 121ms & 0.22s & 1.25s & 5.69s & 45s    & 5m30s &      \\ \hline
+\begin{tabular}[c]{@{}c@{}}GTX 1070m \\ (2048 cuda cores)\end{tabular} & 439ms & 0.19s & 0.41s & 4.86s & 57s    & 4m30s & 71m  \\ \hline
+\end{tabular}%
+}
+\end{table}
+\end{frame}
 
+\begin{frame}\frametitle{Profiler GPU}
+\includegraphics[width=\textwidth]{nvprof250}
 \end{frame}
 
 \begin{frame}\frametitle{Wyniki jakościowe}
