@@ -1,7 +1,7 @@
-\chapter{CUDA}
-\label{cha:cuda}
+\chapter{Implementacja}
+\label{cha:implementacja}
 
-\section{Opis środowiska}
+\section{Opis środowiska CUDA}
 \label{sec:opis_cuda}
 
 Ten podrozdział będzie poświęcony wprowadzeniu do programowania w środowisku CUDA, stworzy podwaliny pod zrozumienie implementacji algorytmu gradientowej klasteryzacji w dalszej części tego rozdziału. Jak zostało wcześniej wspomniane używanie karty graficznej do obliczeń jest traktowaniem jej jako urządzenia wejścia/wyjścia. Z tego powodu w zastosowaniach aplikacyjnych należy przechwytywać i obsługiwać zaistaniałe błędy takie jak np. nieudana alokacja pamięci. W tej pracy kod aplikacji nie będzie tego zawierał, ze względu czytelność i uniknięcia nadmiarowości kodu. Zostanie również przyjęta angielska konwencja nazewnictwa ze względu na brak polskich odpowiedników:
@@ -12,18 +12,18 @@ Ten podrozdział będzie poświęcony wprowadzeniu do programowania w środowisk
 
 W celu wykonania obliczeń na karcie graficznej musi zostać stworzona specjalna funkcja, zwana dalej kernelem. Będzie ona oznaczona jedną z trzech flag:
 \begin{itemize}
-\item host POPRAW - funkcja wywoływana z host i wykonywana na host
-%\item __device__ - funkcja wywoływana z device i wykonywana na device
-%\item __global__ funkcja wywoływana z host i wykonywana na device 
+\item \_\_host\_\_ - funkcja wywoływana z host i wykonywana na host
+\item \_\_device\_\_ - funkcja wywoływana z device i wykonywana na device
+\item \_\_global\_\_ - funkcja wywoływana z host i wykonywana na device 
 \end{itemize}
 , co widać poniżej w linijce 2. Do uruchomienia każdego kernela należy przydzielić określoną liczbę bloków, z których każdy będzie zawierał identyczną liczbę wątków. Linijka 12 pokazuje przykładowe wywołanie kernela z jednym blokiem posiadającym $N$ wątków. Poniższy przykład zsumuje 128 pierwszych elementów tablic A, B i zapiszę wynik do tablicy C;
-\lstinputlisting[language=C++, firstline=1, lastline=13]{cuda.cpp}
+\lstinputlisting[language=C++, firstline=1, lastline=13]{code/cuda.cpp}
 
 Wewnątrz kernela możliwe jest sprawdzenie współrzędnych zarówno wątku jak i bloku.
-\lstinputlisting[language=C++, firstline=17, lastline=23]{cuda.cpp}
+\lstinputlisting[language=C++, firstline=17, lastline=23]{code/cuda.cpp}
 
 Przydatne bywa także informacja o wymiarach siatki(zbiór bloków) oraz bloku(zbiór wątków).
-\lstinputlisting[language=C++, firstline=27, lastline=32]{cuda.cpp}
+\lstinputlisting[language=C++, firstline=27, lastline=32]{code/cuda.cpp}
 
 Procesor i karta graficzna używają różnych przestrzeni adresowych, istnieje możliwość połączenia ich w jedną logiczną przsetrzeń zwaną texttt{unified memory}. Jest prostsza w obsłudze lecz pogarsza wydajność, gdy nie wychodzi predykcja co skutkuje kopiowaniem danych w czasie wykonywania kernela. Przykład poniżej przechodzi obsługę pamięci po stronie GPU.
 \begin{itemize}
@@ -34,13 +34,25 @@ Procesor i karta graficzna używają różnych przestrzeni adresowych, istnieje 
 \item dane muszą spwrotem zostać kopiowane z GPU do CPU - linijka 22
 \item dobra praktyka mówi o zwalnianiu pamięci, gdy ta nie jest już użyteczna - linijka 24
 \end{itemize}
-\lstinputlisting[language=C++, firstline=35, lastline=59]{cuda.cpp}
+\lstinputlisting[language=C++, firstline=35, lastline=59]{code/cuda.cpp}
 
 Istnieje pamięć o czasie dostępu około 100 krotnie mniejszym czasie dostępu niż pamieć wspólna akcelerator \cite{Sha13}. Shared memory jest pamięcią o ograniczonej pojemności dostępna jedynie w tym samym bloku. Przykład odwrócenia 64 elementowej tablicy z wykorzystaniem statycznej shared memory znajduje się poniżej. Ważnym elementem jest bariera dla wątków w linijce 7 oczekująca na przekopiowanie tablicy.
-\lstinputlisting[language=C++, firstline=63, lastline=71]{cuda.cpp}
+\lstinputlisting[language=C++, firstline=63, lastline=71]{code/cuda.cpp}
 
 Nowsze karty graficzne wspierające technologię CUDA dają możliwość wykonywania operacji atomowych na części prostych typów danych REF ATOMIC OPERAND, czego przykładem jest sumowanie elementów tablicy - linjka 4. Kluczowym elementem przy doborze liczby bloków i wątków kernela jest dobór liczby wątków jako wielokrotność 32(w obecnych generacjach GPU, w przyszłych może ulec powiększeniu). Jest to spowodowane fizycznym zgrupowaniem rdzeni w bloki po 32, które muszą wykonywać tę samą instrukcję. 
-\lstinputlisting[language=C++, firstline=75, lastline=88]{cuda.cpp}
+\lstinputlisting[language=C++, firstline=75, lastline=88]{code/cuda.cpp}
+
+\section{Opis zrównoleglenia CPU}
+\label{sec:opis_cpu}
+Standard języka C++14 wprowadził przyjazną dla użytkownika funkcję szablonową $async$, o którą oparta będzie dalsza implementacja. Co ważne rezultatem funkcji jest obiekt $future$, który jeśli nie zostanie przeniesiony lub przypisany do referencji poprzez destruktor wstrzyma wykonywanie wątku aż do otrzymania wyniku \cite{CppRefAsync}. Zachowanie funkcji jest niezdefiniowane, gdy nie zostanie ustawiona jedna z flag:
+\begin{itemize}
+\item $std::launch::async$ - włącza wywołanie asynchroniczne
+\item $std::launch::deferred$ - włącza \"leniwe\" wywołanie
+\end{itemize}
+Kod wykonujący równoległe sumowanie może wyglądać następująco:
+\lstinputlisting[language=C++, firstline=1, lastline=20]{code/cpu.cpp}
+9 linijka sprawdza dostępna ilość wirtualnych rdzeni, ponieważ technologie takie jak hyper-threading przedstawiają dla systemu operacyjnego pojedynczy fizyczny rdzeń procesora jako dwa. Funkcja lambda z kolejnej linijki będzie lokalnie sumować co n-ty element wektora. Następnie wywoływana jest redukcja dla każdego rdzenia, której wynik jest następnie sumowany po synchronizacji.
 
 \section{Implementacja}
 \label{sec:implementacja}
+TO DO !?!?!? na sam koniec po akceptacji wyników
