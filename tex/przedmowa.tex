@@ -3,6 +3,7 @@
 
 Analiza skupień (klasteryzacja) jest metodą nienadzorowaną, której zadaniem jest podział zbioru na skupienia (klastry) w taki sposób aby elementy podobne znajdowały się we wspólnym skupieniu, natomiast niepodobne w odzielnych. Do określania miary podobieństwa bądź niepodobieństwa wykorzystuje się rozmaite metryki. Obecnie dzięki rozwojowi usług internetowych, targetowaniu klientów czy segmentacji obrazów zachodzi duże zapotrzebowanie na skuteczne metody analizy skupień.
 
+Wraz z rozwojem technologicznym coraz trudniejsze staje się tworzenie jednostek o większej wydajności pojedynczego rdzenia. Przyczyną tego są bariery fizyczne takie jak proces technologiczny litografii czy moc generowana przez układ za czym podąża problem chłodzenia. Rozwiązaniem tego problemu staje się tworzenie układów o coraz większej liczbie rdzeni. Z czasem zauważono potencjał w kartach graficznych dysponujących obecnie kilkuset krotnie większą liczbą rdzeni w stosunku do procesorów. Pierwszym środowiskiem oferującym programistom łatwy sposób wykorzystania kart graficznych do obliczeń ogólnego przeznaczenia stała się CUDA.
 %---------------------------------------------------------------------------
 
 \section{Cele pracy}
@@ -16,6 +17,4 @@ Niniejsza praca będzie się skupiała na przyspieszeniu działania algorytmu gr
 \section{Zawartość pracy}
 \label{sec:zawartoscPracy}
 
-Zostaną przedstawione popularne metody klasteryzacji oraz algorytm przewodni pracy wraz z jego niedogodnościami. Omówione i porównane będą dwa wiodące środowiska wykorzystujące akceleratory graficzne.
-TO DO
-zrownoleglenie wydajnosc, jakosc klasteryzacji
+Zostaną przedstawione popularne metody klasteryzacji oraz algorytm przewodni pracy wraz z jego niedogodnościami. Omówione i porównane będą dwa wiodące środowiska wykorzystujące akceleratory graficzne. Algorytm gradientowej klasteryzacji zostanie zrównoleglony zarówno przy użycie procesora jak i karty graficznej. Porównanie powyższych implementacji posłuży w odpowiedzi na pytanie czy akceleratory graficzne są właściwym rozwiązaniem dla przedstawionej metody klasteryzacji.

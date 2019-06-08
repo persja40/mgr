@@ -13,57 +13,56 @@ będacej interpretowaną jako doświadczenie z niezależnych eksperymentów zmie
 Jądrowy estymator gęstości $\hat{f}: \mathbf{R} \to [0, \infty)$ dany jest wzorem
 \begin{equation}
 \label{eq:estymator}
-\hat{f}(x)=\frac{1}{mh^n} \displaystyle \sum_{i=1}^{m}K(\frac{x-x_i}{h})
+\hat{f}(x)=\frac{1}{mh^n} \displaystyle \sum_{i=1}^{m}K(\frac{x-x_i}{h}),
 \end{equation}
-$m \in \mathbf{N_+}$ jest licznością próby losowej, $h \in \mathbf{R_+}$ jest parametrem wygładzania, a funkcja $K$ jest jądrem spełniającym warunki: \\
+gdzie $m \in \mathbf{N_+}$ jest licznością próby losowej, $h \in \mathbf{R_+}$ jest parametrem wygładzania, a funkcja $K$ jest jądrem spełniającym warunki: \\
 gęstość funkcji jest znormalizowana
 \begin{equation}
-\int_{\mathbf{R^n}} K(x)dx = 1
+\int_{\mathbf{R^n}} K(x)dx = 1,
 \end{equation}
 funkcja jest symetryczna
 \begin{equation}
-K(x) = K(-x)
+K(x) = K(-x),
 \end{equation}
-ma w zerze maksimum globalne
+posiada w zerze maksimum globalne
 \begin{equation}
-K(0) \geq K(x), x \in \mathbf{R^n}
+K(0) \geq K(x), x \in \mathbf{R^n}.
 \end{equation}
 
 \subsection{Wybór jądra}
 Czy pisać o tym?
 
 \subsection{Błąd estymacji}
-MSE(ang. mean square error), czyli błąd średniokwadratowy jest kwadratem błędu estymacji, co można zapisać jako
+MSE (ang. mean square error), czyli błąd średniokwadratowy jest kwadratem błędu estymacji, co można zapisać jako
 \begin{equation}
-MSE = E({(\hat{b}-b)}^2 )
+\label{eq:mse}
+MSE = E({(\hat{b}-b)}^2 ).
 \end{equation}
-Wzór można przekształcić w bardziej dogodną formę
+Wzór \ref{eq:mse} można przekształcić w bardziej dogodną formę
 \begin{equation}
 MSE = {[E(\hat{b})-b]}^2 +V(\hat{b})
 \end{equation}
-jako sumę kwadratu obciążenia i jego wariancji. Pierwszy człon wskazuje odchylenie "centrów" estymatora z wartościami pomiarowymi, natomiast drugi pokazuje odchylenie względem "centrum". \\
-Dla estymatora gęstości prawdopodobieństwa zmiennej n-wymiarowej wzór przyjmuje postać
+jako sumę kwadratu obciążenia i jego wariancji. Pierwszy człon wskazuje odchylenie \say{centrów} estymatora z wartościami pomiarowymi, natomiast drugi pokazuje odchylenie względem \say{centrum}. \\
+Dla estymatora gęstości prawdopodobieństwa $\hat{f}$ zmiennej n-wymiarowej $f$ wzór przyjmuje postać
 \begin{equation}
 MSE_x = E({[\hat{f}(x)-f(x)]}^2), x \in \mathbf{R^n}
-\end{equation}
+\end{equation} NIE ROZUMIEM POPRAWKI, SPYTAJ
 lub jak poprzednio
 \begin{equation}
-MSE_x = {[E(\hat{f}(x))-f(x)]}^2 + V(\hat{f}(x)), x \in \mathbf{R^n}
+MSE_x = {[E(\hat{f}(x))-f(x)]}^2 + V(\hat{f}(x)), x \in \mathbf{R^n}.
 \end{equation}
 
-MISE(ang. mean integrated square error), czyli scałkowany błąd średniokwadratowy otrzymuje się poprzez scałkowanie poprzednich błędów na przestrzeni $\mathbf{R^n}$:
+MISE (ang. mean integrated square error), czyli scałkowany błąd średniokwadratowy otrzymuje się poprzez scałkowanie poprzednich błędów na przestrzeni $\mathbf{R^n}$:
 \begin{equation}
-MISE = \int_{\mathbf{R^n}} E({[\hat{f}(x)-f(x)]}^2) dx
+MISE = \int_{\mathbf{R^n}} E({[\hat{f}(x)-f(x)]}^2) dx,
 \end{equation}
 lub
 \begin{equation}
 \label{eq:mise}
-MISE = \int_{\mathbf{R^n}} [{[E(\hat{f}(x))-f(x)]}^2 + V(\hat{f}(x))]dx
+MISE = \int_{\mathbf{R^n}} [{[E(\hat{f}(x))-f(x)]}^2 + V(\hat{f}(x))]dx.
 \end{equation}
 
 Wzór \eqref{eq:mise} podobnie jak poprzednio jest sumą scałkowanego obciążenia estymatora $\hat{f}$ i jego wariancji. MISE jest cennym kryterium dla wyboru postaci jądra $K$ oraz parametru wygładzania $h$.
-
-CZY CIĄGNĄĆ DALEJ? 
 
 \subsection{Parametr wygładzania}
 
@@ -108,7 +107,7 @@ K^{*2}(x) = \int_{\mathbf{R^n}}K(y)K(x-y)dy
 K^{*2}(x) = (4\pi)^{-n/2} exp(-\frac{1}{4}x^Tx)
 \end{equation}
 
-W celu minimalizacji funkcji g powszechnie używana jest metoda złotego podziału, która zostanie zaprezentowana poniżej. Na wstępie należy założyć przedział poszukiwań $[a_0, b_0]$, unimodalność funkcji na przedziale oraz wyznaczyć
+W celu minimalizacji funkcji $g$ powszechnie używana jest metoda złotego podziału, która zostanie zaprezentowana poniżej. Na wstępie należy założyć przedział poszukiwań $[a_0, b_0]$, unimodalność funkcji na przedziale oraz wyznaczyć
 \begin{equation}
 x^l_{0} = b_0 - \frac{\sqrt{5} - 1}{2}(b_0 - a_0)
 \end{equation}
