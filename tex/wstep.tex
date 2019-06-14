@@ -46,7 +46,73 @@ Abstrakt algorytmu przedstawia się następująco: \cite{Sch17}
 Złożoność czasowa algorytmu w przypadku pesymistycznym wynosi $\mathcal{O}(n^2)$ co jest akceptowalne. Do wad należy zaliczyć niedeterministyczność w klasteryzacji punktów brzegowych, ponieważ przydzielenie ich może zależeć od kolejności ułożenia danych. Dla wielowymiarowych danych metryki odległościowe mogą prowadzić do tzw. ``przekleństwa wielowymiarowości`` co znacząco utrudnia dobór $\epsilon$, co więcej wybór otoczenia nie jest trywialny gdy brak specjalistycznej wiedzy na temat danych. Dostosowanie minimalnej liczby sąsiadów stanowiącej punkt rdzeniowy jest trudne, gdy klastry znacząco różnią się gęstością.
 
 \subsection{Sposoby oceny klasteryzacji}
-INDEKS RANDA, CLUSTER COHESION, CLUSTER SEPARATION, DAVIES-BOULDIN, DUNN
+
+\subsubsection{Indeks Randa}
+W przypadku porównywania klasteryzacji z wzrocową, bądź przy porównaniu dwóch rozwiązać można użyć indeksu Randa danego wzorem
+\begin{equation}
+R=\frac{a+b}{a+b+c+d}=\frac{a+b}{\binom{n}{2}},
+\end{equation}
+gdzie
+\begin{itemize}
+\item $a$ - liczba par należących do takich samych klastrów obu przypadkach
+\item $b$ - liczba par należących do różnych klastrów w obu przypadkach
+\item $c$ - liczba par należących do takich samych klastrów w pierwszych przypadku i należących do różnych klastrów w drugim przydziale
+\item $d$ - liczba par należących do różnych klastrów w pierwszych przypadku i należących do takich samych klastrów w drugim przydziale
+\item $n$ - liczba elementów zbioru
+\end{itemize}
+
+\subsubsection{Spójność wewnątrzklastrowa i rozrzut międzyklastrowy}
+Spójność wewnątrzklastrowa (ang. cluster cohesion) jest miarą określającą jak podobne są elementy we wspólnym klastrze, a definiowana jest jako
+\begin{equation}
+CC = \displaystyle \sum_{i=1}^{m} d(x_i, \mu_i)^2.
+\end{equation}
+Rorzut międzyklastrowy (ang. cluster separation) jest miarą określającą jak niepodobny jest klaster w stosunku do innych, a przedstawia się ją jako
+\begin{equation}
+CS = \displaystyle \sum_{i=1}{k} m_i d(\mu_i, \mu)^2,
+\end{equation}
+gdzie
+\begin{itemize}
+\item $d$ - funkcja odległości między elementami
+\item $m$ - ilość elementów klastru
+\item $k$ - ilość klastrów
+\item $\mu$ - centrum klastru
+\end{itemize}
+co ciekawe
+\begin{equation}
+CC + CS = const.
+\end{equation}
+
+\subsubsection{Indeks Daviesa-Bouldina}
+Indeks Daviesa-Bouldina bazuje na spójności wewnątrzklastrowej $S$ oraz rorzucie międzyklastrowym $M$ \cite{DB79}. Niech $R$ będzie ogólną miarą rozdzielności klastrów mającą własności:
+\begin{enumerate}
+\item \begin{equation}
+R(S_i,S_j,M_{ij}) \geq 0
+\end{equation}
+\item \begin{equation}
+R(S_i,S_j,M_{ij}) = R(S_j,S_i,M_{ji})
+\end{equation}
+\item \begin{equation}
+R(S_i,S_j,M_{ij}) = 0\text{, jeśli } S_i=S_j=0
+\end{equation}
+\item \begin{equation}
+\text{jeśli } S_j=S_k \text{ oraz } M_{ij} < M_{ik} \text{ wtedy } R(S_i,S_j,M_{ij}) > R(S_i,S_k,M_{ik})
+\end{equation}
+\item \begin{equation}
+\text{jeśli } M_{ij} = M_{ik} \text{ oraz } S_j > S_k \text{ wtedy } R(S_i,S_j,M_{ij}) > R(S_i,S_k,M_{ik})
+\end{equation}
+\end{enumerate}
+Proponowana jest poniższa funkcja \cite{DB79}
+\begin{equation}
+R_{ij} \equiv \frac{S_i + S_j}{M_{ij}}
+\end{equation}
+Dla takiej funkcji indeks oceny klasteryzacji dany jest jako:
+\begin{equation}
+\bar{R}_{ij} \equiv \frac{i}{N} \displaystyle \sum_{i=1}^{N} R_i \text{, gdzie } R_{ij} \equiv \text{ max } R_{ij} \text{ dla } i \neq j
+\end{equation}
+czyli średnia podobieństw między każdym klastrem a jemu najbardziej podobnym. Minimalizacja indeksu powinna prowadzić do \say{lepszej} klasteryzacji.
+
+INDEKS DUNNA ????????
+
 
 \section{Akceleracja GPU}
 \label{sec:akceleracja}
