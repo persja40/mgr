@@ -13,4 +13,6 @@ src/cpu
 **/*.blg
 **/*.log
 **/*.out
+**/*.fls
+**/*.fdb_latexmk
 .vscode/*
