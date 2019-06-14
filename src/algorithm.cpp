@@ -155,7 +155,7 @@ vector<float> goldenRatio(vector<vector<float>> &data, float a_u = 0.0001, float
             f1 = g_h(data, l1, nth);
             f2 = g_h(data, l2, nth);
 
-            // cout << "l1 " << l1 << "\tf1 " << f1 << "\tl2 " << l2 << "\tf2 " << f2 << " " << nth << endl;
+            cout << "l1 " << l1 << "\tf1 " << f1 << "\tl2 " << l2 << "\tf2 " << f2 << " " << nth << endl;
 
             if (f2 > f1)
                 b = l2;

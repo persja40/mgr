@@ -415,7 +415,7 @@ std::vector<float> goldenRatio(float *data, int m, int n, float a_u = 0.0001, fl
             f2 = f2 / (pow(m, 2) * pow(l2,1)) + 2 / (m * pow(l2,1))/powf(2 * M_PI,1*0.5);
             cudaMemset(d_answer, 0, sizeof(float));
 
-            // cout<<"l1 "<<l1<<"\tf1 "<<f1<<"\tl2 "<<l2<<"\tf2 "<<f2<<"\t"<<nth<<endl;
+            cout<<"l1 "<<l1<<"\tf1 "<<f1<<"\tl2 "<<l2<<"\tf2 "<<f2<<"\t"<<nth<<endl;
 
             if (f2 > f1)
                 b = l2;

@@ -9,7 +9,7 @@
 #include <iterator>
 #include <tuple>
 
-std::string fn = "../data/iris.data";
+std::string fn = "../data/iris2.data";
 
 std::vector<std::vector<float>> read_iris_cpu()
 {
