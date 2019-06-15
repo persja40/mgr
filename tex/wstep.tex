@@ -111,8 +111,18 @@ Dla takiej funkcji indeks oceny klasteryzacji dany jest jako:
 \end{equation}
 czyli średnia podobieństw między każdym klastrem a jemu najbardziej podobnym. Minimalizacja indeksu powinna prowadzić do \say{lepszej} klasteryzacji.
 
-INDEKS DUNNA ????????
-
+\subsubsection{Indeks Dunna}
+Indeks Dunna został zaprojektowany, aby określać klastry o małej wariancji między elementami oraz separowalność klastrów \cite{Dunn73}. Można go zapisać jako
+\begin{equation}
+D = \frac{\min_{1 \leq q \leq r \leq k} \delta(C_q, C_r) }{\max_{1 \leq p \leq k} \Delta_p},
+\end{equation}
+gdzie
+\begin{itemize}
+\item $k$ - liczba klastrów
+\item $\delta$ - odległość międzyklastrowa
+\item $\Delta$ - odległość wewnątrzklastrowa
+\end{itemize}
+Maksymalizacja indeksu prowadzi do \say{lepszej} klasteryzacji.
 
 \section{Akceleracja GPU}
 \label{sec:akceleracja}
