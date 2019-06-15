@@ -10,7 +10,7 @@ Niech zmienna losowa $X$ będzie n-wymiarową zmienną losową o gęstości praw
 x_1, x_2, ..., x_m
 \end{equation}
 będacej interpretowaną jako doświadczenie z niezależnych eksperymentów zmiennej losowej $X$.
-Jądrowy estymator gęstości $\hat{f}: \mathbf{R} \to [0, \infty)$ dany jest wzorem
+Jądrowy estymator gęstości $\hat{f}: \mathbf{R} \to [0, \infty)$ dany jest wzorem \cite{Kul05}
 \begin{equation}
 \label{eq:estymator}
 \hat{f}(x)=\frac{1}{mh^n} \displaystyle \sum_{i=1}^{m}K(\frac{x-x_i}{h}),
@@ -30,7 +30,7 @@ K(0) \geq K(x), x \in \mathbf{R^n}.
 \end{equation}
 
 \subsection{Błąd estymacji}
-MSE (ang. mean square error), czyli błąd średniokwadratowy jest kwadratem błędu estymacji, co można zapisać jako
+MSE (ang. mean square error), czyli błąd średniokwadratowy jest kwadratem błędu estymacji, co można zapisać jako \cite{Kul05}
 \begin{equation}
 \label{eq:mse}
 MSE = E({(\hat{b}-b)}^2 ).
@@ -63,7 +63,7 @@ Wzór \eqref{eq:mise} podobnie jak poprzednio jest sumą scałkowanego obciąże
 
 \subsection{Parametr wygładzania}
 
-Wartość parametru wygładzania ma kluczowe znaczenie dla jakości estymatora jądrowego. W tym podrozdziale zostaną przedstawione dwie metody wyznaczania tego parametru, przy użyciu MISE - scałkowanego błędu średniokwardatowego. Parametr wygładzania wpływa jednakowo na wszystkie wymiary, w następnym podrozdziale zostanie omówiona metoda jego indywidualizacji w zależności od wymiaru \ref{subsec:modyfikacje_h}.
+Wartość parametru wygładzania ma kluczowe znaczenie dla jakości estymatora jądrowego. W tym podrozdziale zostaną przedstawiona metoda wyznaczenia parametru wygładzania, przy użyciu MISE - scałkowanego błędu średniokwardatowego. Parametr wygładzania wpływa jednakowo na wszystkie wymiary, w następnym podrozdziale zostanie omówiona metoda jego indywidualizacji w zależności od wymiaru \ref{subsec:modyfikacje_h} \cite{Kul12}.
 
 Dla produktowej postaci jądra w przypadku gdy zmienna losowa X jest wielowymiarowa, wartość parametru wygładzania jest wyliczana osobno dla każdego wymiaru jak dla zmiennych jednowymiarowych. 
 
@@ -71,14 +71,14 @@ W odróżnieniu od problemu wyboru jądra dobór odpowiedniego parametru wygład
 
 W przeciwnym przypadku, gdy omawiany parametr zostanie dobrany zbyt duży, doprowadzi to do nadmiernego wygładzenia estymatora. Stłumienie \say{centrum} i wzmocnienie \say{ogonów} spowoduję zanik cech danych pomiarowych, uniemożliwiając ich odróżnienie \ref{sec:dod_h}.
 
-Dwie najpopularniejsze metody wyboru parametru wygładzania to :
+Dwie najpopularniejsze metody wyboru parametru wygładzania to : \cite{Kul10} 
 \begin{itemize}
 \item metoda podstawień(ang. plug-in method) - o mniejszym złożeniu obliczeniowym, lecz może być wykorzystany jedynie do dla danych jednowymiarowych
 \item metoda krzyżowego uwiarygodnienia(ang. corss validation method) - o większej złożoności obliczeniowej, natomiast nie jest zależna od wymiarowości danych
 \end{itemize}
 dzięki czemu mogą być wykorzystywane komplementarnie. Obie mogą być wykorzystane w przypadku jednowymiarowym uzyskując zbliżone rezultaty ze względu na minimalizację wspólnego błędu, jakim jest błąd średniokwadratowy MISE \cite{Kul05}.
 
-Metoda krzyżowego uwierzytelniania nie jest zależna od ilości wymiarów zmiennej losowej. Jej koncepcja polega na minimalizacji wartości scałkowanego błędu średniokwadratowego MISE. Niech dla zadanego jądra $K$ zdefiniowana będzie funkcja $g:(0,\inf ) \rightarrow \mathbf{R}$
+Metoda krzyżowego uwierzytelniania nie jest zależna od ilości wymiarów zmiennej losowej. Jej koncepcja polega na minimalizacji wartości scałkowanego błędu średniokwadratowego MISE \cite{Kul05} \cite{Kul10}. Niech dla zadanego jądra $K$ zdefiniowana będzie funkcja $g:(0,\inf ) \rightarrow \mathbf{R}$
 
 \begin{equation}
 g(h)=\frac{1}{m^2h^n}\displaystyle\sum_{i=1}^{m} \displaystyle\sum_{j=1}^{m} \widetilde{K}(\frac{x_j - x_i}{h}) + \frac{2}{mh^n}K(0),
@@ -174,7 +174,7 @@ Koncepcyjnie metoda złotego podziału polega na stworzeniu zstępującego ciąg
 
 \subsection{Modyfikacja parametru wygładzania}
 \label{subsec:modyfikacje_h}
-Parametr wygładzania $h$ jest jednakowy dla wszystkich jąder $K$, dlatego wprowadza się jego modyfikację. Skutkuje to możliwością zmniejszenia parametru wygładzania (wyszczuplenie jądra - wzmocnienie) w miejscach o dużej gęstości próby losowej, natomiast w rejonach mniejszej gęstości próby losowej zwiększenie wartości parametru wygładzania (rozciągnięcie jądra - osłabienie).
+Parametr wygładzania $h$ jest jednakowy dla wszystkich jąder $K$, dlatego wprowadza się jego modyfikację \cite{Kul05} \cite{Kul10}. Skutkuje to możliwością zmniejszenia parametru wygładzania (wyszczuplenie jądra - wzmocnienie) w miejscach o dużej gęstości próby losowej, natomiast w rejonach mniejszej gęstości próby losowej zwiększenie wartości parametru wygładzania (rozciągnięcie jądra - osłabienie).
 
 Metoda wyznaczenia parametrów modyfikujących $s_i>0, i \in [1, m]$ wygląda następująco :
 \begin{equation}
@@ -190,19 +190,13 @@ Finalnie estymator jądrowy ze zmodyfikowanym parametrem wygładzania definiuje 
 \hat{f}(x)=\frac{1}{mh^n} \displaystyle \sum_{i=1}^{m} \frac{1}{s_i^n} K(\frac{x-x_i}{hs_i})
 \end{equation}
 
-TEST CYTATÓW
-\cite{Kul10}
-\cite{Kul05}
-\cite{Kul12}
-
-
 %------------------------------------------------------------------------------------------------------
 
 \section{Algorytm}
 \label{sec:algorytm}
 \subsection{Schemat}
 \label{subsec:schemat}
-Jako dane wejściowe przyjęty będzie m-elementowy zbiór n-elementowych wektorów, będzie on traktowany jak zbiór pomiarowy n-wymiarowej zmiennej losowej X o gęstości f. UZUPEŁNIĆ
+Jako dane wejściowe przyjęty będzie m-elementowy zbiór n-elementowych wektorów, będzie on traktowany jak zbiór pomiarowy n-wymiarowej zmiennej losowej $X$ o gęstości $f$.
 Schemat algorytmu przedstawia się następująco:
 \begin{enumerate}
 \item sformułowanie jądra estymatora $\hat{f}$
@@ -282,7 +276,7 @@ Wartość $x_d$ zostanie wyznaczona jako najmniejszy element zbioru \eqref{eq:se
 co będzie iterpretowane jako połowa odległości pomiędzy centrami klastrów.
 
 
-Zbiór \eqref{eq:set_init} zostanie użyty do klasteryzacji w następujący sposób:
+Zbiór \eqref{eq:set_init} zostanie użyty do klasteryzacji w następujący sposób \cite{Kul10} :
 \begin{enumerate}
 \item weź element zbioru i utwórz z niego jednoelementowy klaster
 \item znajdź element zbioru bliższy niż $x_d$ i dodaj go do klastru, powtarzaj dopóki istnieją
