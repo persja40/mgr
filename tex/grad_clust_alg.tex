@@ -29,16 +29,13 @@ posiada w zerze maksimum globalne
 K(0) \geq K(x), x \in \mathbf{R^n}.
 \end{equation}
 
-\subsection{Wybór jądra}
-Czy pisać o tym?
-
 \subsection{Błąd estymacji}
 MSE (ang. mean square error), czyli błąd średniokwadratowy jest kwadratem błędu estymacji, co można zapisać jako
 \begin{equation}
 \label{eq:mse}
 MSE = E({(\hat{b}-b)}^2 ).
 \end{equation}
-Wzór \ref{eq:mse} można przekształcić w bardziej dogodną formę
+Wzór \eqref{eq:mse} można przekształcić w bardziej dogodną formę
 \begin{equation}
 MSE = {[E(\hat{b})-b]}^2 +V(\hat{b})
 \end{equation}
@@ -66,43 +63,35 @@ Wzór \eqref{eq:mise} podobnie jak poprzednio jest sumą scałkowanego obciąże
 
 \subsection{Parametr wygładzania}
 
-Wartość parametru wygładzania ma kluczowe znaczenie dla jakości estymatora jądrowego. W tym podrozdziale zostaną przedstawione dwie metody wyznaczania tego parametru, przy użyciu MISE - scałkowanego błędu średniokwardatowego. Parametr wygładzania wpływa jednakowo na wszystkie wymiary, w następnym podrozdziale zostanie omówiona metoda jego indywidualizacji w zależności od wymiaru UWAGA ZASTANÓW SIĘ CO PISZESZ \ref{subsec:modyfikacje_h}.
+Wartość parametru wygładzania ma kluczowe znaczenie dla jakości estymatora jądrowego. W tym podrozdziale zostaną przedstawione dwie metody wyznaczania tego parametru, przy użyciu MISE - scałkowanego błędu średniokwardatowego. Parametr wygładzania wpływa jednakowo na wszystkie wymiary, w następnym podrozdziale zostanie omówiona metoda jego indywidualizacji w zależności od wymiaru \ref{subsec:modyfikacje_h}.
 
-W przypadku gdy zmienna losowa X jest wielowymiarowa wartość parametru wygładzania jest wyliczana osobno dla każdego wymiaru jak dla zmiennych jednowymiarowych. 
+Dla produktowej postaci jądra w przypadku gdy zmienna losowa X jest wielowymiarowa, wartość parametru wygładzania jest wyliczana osobno dla każdego wymiaru jak dla zmiennych jednowymiarowych. 
 
-W odróżnieniu od problemu wyboru jądra dobór odpowiedniego parametru wygładzania ma kluczowe znaczenie dla jakości estymacji. Jego zbyt mała wartość skutkuje powstaniem wielu ekstremów lokalnych niemających odzwierciedlenia w danych pomiarowych. Można to również zaobserwować ze wzoru na estymator jądrowy \ref{eq:estymator}, w którym parametr wygładzania znajduje się w mianowniku przed sumą. W takiej sytuacji wzmocnione zostaną wartości znajdujące się blisko "centrum", natomiast bardziej odległe zostaną wytłumione.
+W odróżnieniu od problemu wyboru jądra dobór odpowiedniego parametru wygładzania ma kluczowe znaczenie dla jakości estymacji. Jego zbyt mała wartość skutkuje powstaniem wielu ekstremów lokalnych niemających odzwierciedlenia w danych pomiarowych. Można to również zaobserwować ze wzoru estymatora jądrowego \eqref{eq:estymator}, w którym parametr wygładzania znajduje się w mianowniku przed sumą. W takiej sytuacji wzmocnione zostaną wartości znajdujące się blisko \say{centrum}, natomiast bardziej odległe zostaną wytłumione.
 
-W przeciwnym przypadku, gdy omawiany parametr zostanie dobrany zbyt duży, doprowadzi to do nadmiernego wygładzenia estymatora. Stłumienie "centrum" i wzmocnienie "ogonów" spowoduję zanik cech danych pomiarowych, uniemożliwiając ich odróżnienie.
-
-DODAJ RYSUNKI dla h małe, duże i OK
-
-INTERPRETACJA 2 z obciążeniem i wariancją
+W przeciwnym przypadku, gdy omawiany parametr zostanie dobrany zbyt duży, doprowadzi to do nadmiernego wygładzenia estymatora. Stłumienie \say{centrum} i wzmocnienie \say{ogonów} spowoduję zanik cech danych pomiarowych, uniemożliwiając ich odróżnienie \ref{sec:dod_h}.
 
 Dwie najpopularniejsze metody wyboru parametru wygładzania to :
 \begin{itemize}
 \item metoda podstawień(ang. plug-in method) - o mniejszym złożeniu obliczeniowym, lecz może być wykorzystany jedynie do dla danych jednowymiarowych
 \item metoda krzyżowego uwiarygodnienia(ang. corss validation method) - o większej złożoności obliczeniowej, natomiast nie jest zależna od wymiarowości danych
 \end{itemize}
-dzięki czemu mogą być wykorzystywane komplementarnie. Obie mogą być wykorzystane w przypadku jednowymiarowym uzyskując zbliżone rezultaty ze względu na minimalizację wspólnego błędu, jakim jest błąd średniokwadratowy MISE. REF
+dzięki czemu mogą być wykorzystywane komplementarnie. Obie mogą być wykorzystane w przypadku jednowymiarowym uzyskując zbliżone rezultaty ze względu na minimalizację wspólnego błędu, jakim jest błąd średniokwadratowy MISE \cite{Kul05}.
 
-Zakładając jednowymiarową zmienna losową, zostanie teraz przedstawiona metoda podstawień.
-
-NAPISZ
-
-CROSS VALIDATION
+Metoda krzyżowego uwierzytelniania nie jest zależna od ilości wymiarów zmiennej losowej. Jej koncepcja polega na minimalizacji wartości scałkowanego błędu średniokwadratowego MISE. Niech dla zadanego jądra $K$ zdefiniowana będzie funkcja $g:(0,\inf ) \rightarrow \mathbf{R}$
 
 \begin{equation}
-g(h)=\frac{1}{m^2h^n}\displaystyle\sum_{i=1}^{m} \displaystyle\sum_{j=1}^{m} \widetilde{K}(\frac{x_j - x_i}{h}) + \frac{2}{mh^n}K(0)
+g(h)=\frac{1}{m^2h^n}\displaystyle\sum_{i=1}^{m} \displaystyle\sum_{j=1}^{m} \widetilde{K}(\frac{x_j - x_i}{h}) + \frac{2}{mh^n}K(0),
 \end{equation}
-
+a funkcja $\widetilde{K}: \mathbf{R^n} \rightarrow \mathbf{R}$ jest określona wzorem
 \begin{equation}
-G(x) = K^{*2}(x) - 2K(x)
+\widetilde{K}(x) = K^{*2}(x) - 2K(x)
 \end{equation}
-
+gdzie $K^{*2}: \mathbf{R^n} \rightarrow <0, \inf )$ jest kwadratem splotu funkcji $K$, czyli
 \begin{equation}
 K^{*2}(x) = \int_{\mathbf{R^n}}K(y)K(x-y)dy
 \end{equation}
-
+Dla zastosowanego jądra normalnego sprowadza się to do 
 \begin{equation}
 K^{*2}(x) = (4\pi)^{-n/2} exp(-\frac{1}{4}x^Tx)
 \end{equation}
@@ -167,7 +156,6 @@ w każdym następnym kroku dla $k \in \mathbf{N}\{0\}$ dopóki $b-a > \epsilon$ 
 	f(x^r_k)
 	\end{equation}
 \end{itemize}
-SPRAWDŹ CZY NIE MA LITERÓWEK !?!?!!?
 W momencie osiągnięcia warunku zakończenia $b-a< \epsilon$ za minimum przyjmuje się
 \begin{itemize}
 \item jeśli $f(x^l_{k-1}) \leq f(x^r_{k-1}) $
@@ -202,10 +190,6 @@ Finalnie estymator jądrowy ze zmodyfikowanym parametrem wygładzania definiuje 
 \hat{f}(x)=\frac{1}{mh^n} \displaystyle \sum_{i=1}^{m} \frac{1}{s_i^n} K(\frac{x-x_i}{hs_i})
 \end{equation}
 
-\subsection{Liczność próby losowej}
-
-\subsection{Przykład}
-
 TEST CYTATÓW
 \cite{Kul10}
 \cite{Kul05}
@@ -228,8 +212,7 @@ Schemat algorytmu przedstawia się następująco:
 
 \subsection{Sformułowanie jądra estymatora}
 \label{subsec:jadro_estymatora}
-Użyte zostanie estymator jądrowy ze zmodyfikowanym parametrem wygładzania \ref{eq:est_mod} z jądrem normalnym REF!?!?!?.
-
+Użyte zostanie estymator jądrowy ze zmodyfikowanym parametrem wygładzania \eqref{eq:est_mod} z jądrem normalnym \cite{Kul10}.
 \subsection{Warunek zakończenia}
 \label{subsec:stop_cond}
 Zakłada się że klastry powiązane są z maksimami funkcji $\hat{
@@ -237,7 +220,7 @@ f}$, dlatego elementy wejściowe będą przesuwane o $\Delta\hat{f}$. Będzie to
 \begin{equation}
 x^0_j=x_j, j\in [1,m]
 \end{equation}
-\begin{equation}
+\begin{equation} \label{eq:dist_set}
 x^{k+1}_j=x^k_j+b\frac{\Delta\hat{f}(x^k_j)}{\hat{f}(x^k_j)}, j \in [1,m], k \in [0,k^*]
 \end{equation}
 gdzie $b > 0$ i $k^* \in \mathbf{N} \backslash \{0\}$. Rekomenduje się aby
@@ -263,7 +246,7 @@ gdzie $d$ jest euklidesową metryką w $\mathbf{R}^n$. $D$ oznacza sumę odległ
 \begin{equation}
 a= 0.0001
 \end{equation}
-W momencie spełnienia warunku \ref{eq:stop_cond} przyjmuje się, że obecna wartość $k$ jest ostatnią.
+W momencie spełnienia warunku \eqref{eq:stop_cond} przyjmuje się, że obecna wartość $k$ jest ostatnią.
 \begin{equation}
 k^*=k
 \end{equation}
@@ -288,18 +271,18 @@ Kolejnym etapem algorytmu jest znalezienie pierwszego lokalnego minimum funkcji 
 \begin{equation}
 D = max_{i=1, ..., m-1, j=i+1, ..., m } d(x_i,x_j)
 \end{equation}
-Następnie ze zbiór \ref{eq:set_x_k} wyznaczyć jego odchylenie standardowe $\sigma_d$ oraz przyjąć że $x$ należy do zbioru
+Następnie ze zbiór \eqref{eq:set_x_k} wyznaczyć jego odchylenie standardowe $\sigma_d$ oraz przyjąć że $x$ należy do zbioru
 \begin{equation} \label{eq:set_sigma_d}
 \{0.01 \sigma_d , 0.02 \sigma_d , ..., ( \lfloor 100D \rfloor -1) 0.01 \sigma_d \}
 \end{equation}
-Wartość $x_d$ zostanie wyznaczona jako najmniejszy element zbioru \ref{eq:set_sigma_d} spełniający warunek
+Wartość $x_d$ zostanie wyznaczona jako najmniejszy element zbioru \eqref{eq:set_sigma_d} spełniający warunek
 \begin{equation}
 \hat{f}_d(x-0.01\sigma_d) > \hat{f}_d(x) i \hat{f}_d(x) \geq \hat{f}_d(x+0.01\sigma_d) 
 \end{equation}
 co będzie iterpretowane jako połowa odległości pomiędzy centrami klastrów.
 
 
-Zbiór \ref{eq:set_init} zostanie użyty do klasteryzacji w następujący sposób:
+Zbiór \eqref{eq:set_init} zostanie użyty do klasteryzacji w następujący sposób:
 \begin{enumerate}
 \item weź element zbioru i utwórz z niego jednoelementowy klaster
 \item znajdź element zbioru bliższy niż $x_d$ i dodaj go do klastru, powtarzaj dopóki istnieją
