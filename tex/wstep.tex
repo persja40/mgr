@@ -68,7 +68,7 @@ CC = \displaystyle \sum_{i=1}^{m} d(x_i, \mu_i)^2.
 \end{equation}
 Rorzut międzyklastrowy (ang. cluster separation) jest miarą określającą jak niepodobny jest klaster w stosunku do innych, a przedstawia się ją jako
 \begin{equation}
-CS = \displaystyle \sum_{i=1}{k} m_i d(\mu_i, \mu)^2,
+CS = \displaystyle \sum_{i=1}^{k} m_i d(\mu_i, \mu)^2,
 \end{equation}
 gdzie
 \begin{itemize}
@@ -129,7 +129,7 @@ Maksymalizacja indeksu prowadzi do \say{lepszej} klasteryzacji.
 General-purpose computing on graphics processing units (GPGPU) polega na wykorzystaniu procesorów graficznych do wykonania obliczeń typowo obsługiwanych przez procesor. Rozwój tych technologi zapoczątkował przełom w czasie wykonywania obliczeń dla wielu problemów, w których obecnie wykorzystanie procesorów graficznych staję się standardem jak chociażby głębokie uczenie, obróbka chmur danych, renderowanie scen czy ostatnio śledzenie promieni.
 
 \subsection{Wprowadzenie do programowania GPU}
-Z punktu widzenia procesora, karty graficzne są zewnętrznymi urządzeniami wejścia-wyjścia, dlatego istotną kwestią będzie przesył danych. Główną pamięcia procesora (pomijając pamięci cache) będzie RAM (ang. random access memory), natomiast w przypadku karty graficznej będzie to VRAM (ang. video random access memory). Zarówno procesor jak i akcelerator graficzny wykonują obliczenia tylko na własnej pamięci. Istnieją wysokopoziomowe interfejsy programistyczne pozwalające na dostęp do wspólnej pamięci RAM i VRAM, jak CUDA unified memory, lecz w sytuacji gdy dane nie zostaną znalezione w pamięci modułu wykonującego obliczenia mogą zostać niejawnie skopiowane. Niepotrzebne kopiowanie danych lub dostęp do innej pamięci między CPU a GPU jest stratą czasu obliczeniowego, gdzie w niektórych przypadkach dostęp do danych stanowi główną składaową czasu działania programu. Rdzenie procesora są bardziej zaawansowanymi i bardziej ogólnymi układami niż procesory graficzne. Programowanie GPU polega na przydzieleniu wspólnych danych grupie procesorów, gdzie każdy z nich wykonuje część obliczeń (ang. stream processing). Z tego powodu GPGPU nie jest użyteczne w problemach stricte senkwencyjnych oraz gdy wymagane są zaawansowane instrukcje procesora. Główną przewagą GPU nad procesorami jest kilkadziesiąt razy większa moc obliczeniowa uzyskana za zbliżoną cenę. ZNAJDŹ JAKIEŚ WYKRESY, WZROST WYDAJNOŚCI W CZASIE, CENY, SPECYFIKACJIA KART Z FP64 I FP32, PROMOTOR: ODNIESIENIE DO ŹRÓÐŁA. Mówiąc o programowaniu GPU należy wspomnieć o 3 głównych typach jednostek są to :
+Z punktu widzenia procesora, karty graficzne są zewnętrznymi urządzeniami wejścia-wyjścia, dlatego istotną kwestią będzie przesył danych. Główną pamięcia procesora (pomijając pamięci cache) będzie RAM (ang. random access memory), natomiast w przypadku karty graficznej będzie to VRAM (ang. video random access memory). Zarówno procesor jak i akcelerator graficzny wykonują obliczenia tylko na własnej pamięci. Istnieją wysokopoziomowe interfejsy programistyczne pozwalające na dostęp do wspólnej pamięci RAM i VRAM, jak CUDA unified memory, lecz w sytuacji gdy dane nie zostaną znalezione w pamięci modułu wykonującego obliczenia mogą zostać niejawnie skopiowane. Niepotrzebne kopiowanie danych lub dostęp do innej pamięci między CPU a GPU jest stratą czasu obliczeniowego, gdzie w niektórych przypadkach dostęp do danych stanowi główną składaową czasu działania programu. Rdzenie procesora są bardziej zaawansowanymi i bardziej ogólnymi układami niż procesory graficzne. Programowanie GPU polega na przydzieleniu wspólnych danych grupie procesorów, gdzie każdy z nich wykonuje część obliczeń (ang. stream processing). Z tego powodu GPGPU nie jest użyteczne w problemach stricte senkwencyjnych oraz gdy wymagane są zaawansowane instrukcje procesora. Główną przewagą GPU nad procesorami jest kilkadziesiąt razy większa moc obliczeniowa uzyskana za zbliżoną cenę \cite{GpuSpec} \cite{CpuSpec}. Mówiąc o programowaniu GPU należy wspomnieć o 3 głównych typach jednostek są to :
 \begin{itemize}
 	\item \it{FP16} (ang. floating point 16 bit) - jendostki połowicznej precyzji, najczęściej wykorzystywane przy uczeniu maszynowym i głębokim uczeniu, gdzie precyzja liczb zmiennoprzecinkowych nie jest krytyczna. Dostępne w nowszych kartach graficznych.
 	\item \it{FP32} (ang. floating point 32 bit) - jednostki pojedynczej precyzji, najbardziej popularne.
@@ -147,7 +147,7 @@ Schemat obliczeń na akceleratorez graficznym wygląda następująco:
 Może on zostać zrealizowany przy użyciu 2 głównych środowisk OpenCL i CUDA.
 
 \subsection{OpenCL}
-
+OpenCL (ang. Open Computing Language) jest frameworkiem bazującym na języku C++ pozwalającym na wykonywanie obliczeń na platformach składających się z różnych układów takich jak procesor, karta graficzna czy FPGA. Istnieje kilka implementacji tego frameworka, co powoduje różnice w wydajności i stabilności tych rozwiązań. Często nie jest też wykorzystywany ze względu na bardziej skomplikowany interfejs programistyczny. W wielu profesjonalnych zastosowaniach używane są karty graficzne firmy Nvidia wspierającej konkurencyjną technologię CUDA, przez co wzrost popularności OpenCL jest ograniczony.
 
 
 
