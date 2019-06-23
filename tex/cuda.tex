@@ -55,4 +55,22 @@ Kod wykonujący równoległe sumowanie może wyglądać następująco:
 
 \section{Implementacja}
 \label{sec:implementacja}
-TO DO !?!?!? na sam koniec po akceptacji wyników
+
+\subsubsection{Wyliczanie funkcji g(h)}
+Dla procesora zrównoleglenie polega na asynchronicznym sumowaniu i synchronizacji co zapewnia funkcja
+\lstinputlisting[language=C++, firstline=1, lastline=29]{code/impl_cpu.cpp}
+analogiczna operacja dla GPU wygląda następująco
+\lstinputlisting[language=C++, firstline=1, lastline=20]{code/impl_cuda.cpp}
+przy czym na karcie graficznej wykonywane jest jedynie obliczanie podwójnej sumy ze wzoru \eqref{eq:g_h} co stanowi główną składową czasu obliczeń.
+
+\subsection{Modyfikacja parametru wygładzania}
+W przypadku użycia procesora funkcją wyznaczającą tablicę modyfikacji parametru wygładzania wygląda następująco
+\lstinputlisting[language=C++, firstline=31, lastline=61]{code/impl_cpu.cpp}
+w przypadku GPU należy użyć dwóch funkcji między użyciem których należy wyznaczyć średnią
+\lstinputlisting[language=C++, firstline=22, lastline=30]{code/impl_cuda.cpp}
+
+\subsection{Suma odległości między elementami D}
+Ostatnim fragmentem ważnym do zrównoleglenia jest suma odległości w warunku zatrzymania \eqref{eq:D_k}. Dla procesora przedstawia się to w sposób następujący
+\lstinputlisting[language=C++, firstline=63, lastline=88]{code/impl_cpu.cpp}
+i analogiczna dla technologii CUDA
+\lstinputlisting[language=C++, firstline=32, lastline=53]{code/impl_cuda.cpp}
